@@ -1,0 +1,115 @@
+# Claude Code 和相關工具
+.claude/
+.kiro/
+
+# Git Worktree 工作目錄 (本地開發用)
+nodepilot-worktrees/
+
+# 環境變數和敏感檔案
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.key
+*.pem
+config.json
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.npm
+.eslintcache
+.stylelintcache
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+ENV/
+env/
+.pipenv/
+
+# IDE 和編輯器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 建置輸出
+.output/
+.wxt/
+dist/
+build/
+*.tsbuildinfo
+.cache/
+
+# 測試覆蓋率
+coverage/
+*.lcov
+.nyc_output
+
+# 日誌檔案
+*.log
+logs/
+
+# 運行時檔案
+*.pid
+*.seed
+*.pid.lock
+
+# 暫存檔案
+.tmp/
+temp/
+*.tmp
+*.temp
+
+# Chrome Extension 開發
+web-ext-artifacts/
+*.zip
+
+# OS 檔案
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# 編輯器備份檔案
+*~
+*.bak
+*.orig
+*.rej
+
+# 其他
+.sass-cache/
+connect.lock
+typings/
