@@ -21,7 +21,7 @@ export function AnnotationUI({ selectedText, position, onClose }: AnnotationUIPr
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   
-  const { state, generateTeaching } = useNodePilot();
+  const { state, createAnnotation } = useNodePilot();
 
   useEffect(() => {
     // 檢查音訊設備支援
@@ -155,11 +155,12 @@ export function AnnotationUI({ selectedText, position, onClose }: AnnotationUIPr
       return;
     }
 
-    await generateTeaching({
+    await createAnnotation({
       url: window.location.href,
       selected_text: selectedText,
       confusion_note: confusionNote || '',
       audio_file: recordedAudio || undefined,
+      page_title: document.title,
     });
 
     onClose();
@@ -341,7 +342,7 @@ export function AnnotationUI({ selectedText, position, onClose }: AnnotationUIPr
             fontSize: '12px',
           }}
         >
-          {state.isLoading ? '生成中...' : isRecording ? '錄製中...' : '生成教學'}
+          {state.isLoading ? '處理中...' : isRecording ? '錄製中...' : '標註困惑'}
         </button>
         
         <button

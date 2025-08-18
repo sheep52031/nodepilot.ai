@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import { NodePilotState, NodePilotAction, AnnotationData, TeachingRequest } from './types';
+import { NodePilotState, NodePilotAction, AnnotationData, TeachingRequest, CreateAnnotationRequest, AnnotationResponse } from './types';
 
 const initialState: NodePilotState = {
   currentAnnotation: null,
@@ -28,7 +28,8 @@ function nodePilotReducer(state: NodePilotState, action: NodePilotAction): NodeP
 interface NodePilotContextType {
   state: NodePilotState;
   generateTeaching: (request: TeachingRequest) => Promise<void>;
-  updateAnnotationStatus: (annotationId: number, status: string) => Promise<void>;
+  createAnnotation: (request: CreateAnnotationRequest) => Promise<void>;
+  updateAnnotationStatus: (annotationId: string, status: string) => Promise<void>;
   showAnnotationUI: () => void;
   hideAnnotationUI: () => void;
   clearError: () => void;
@@ -97,7 +98,70 @@ export function NodePilotProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const updateAnnotationStatus = useCallback(async (annotationId: number, status: string) => {
+  const createAnnotation = useCallback(async (request: CreateAnnotationRequest) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
+
+    try {
+      let response;
+      
+      if (request.audio_file) {
+        // 使用 FormData 上傳音檔
+        const formData = new FormData();
+        formData.append('url', request.url);
+        formData.append('selected_text', request.selected_text);
+        formData.append('confusion_note', request.confusion_note);
+        formData.append('audio_file', request.audio_file, 'recording.webm');
+        if (request.page_title) {
+          formData.append('page_title', request.page_title);
+        }
+        
+        response = await fetch('http://127.0.0.1:8000/annotations', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // 普通 JSON 請求
+        response = await fetch('http://127.0.0.1:8000/annotations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: request.url,
+            selected_text: request.selected_text,
+            confusion_note: request.confusion_note,
+            page_title: request.page_title,
+          }),
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error('標註困惑失敗');
+      }
+
+      const result: AnnotationResponse = await response.json();
+      
+      const annotation: AnnotationData = {
+        id: result.id,
+        url: result.url,
+        selected_text: result.selected_text,
+        confusion_note: result.confusion_note,
+        audio_transcription: result.audio_transcription,
+        cognitive_note: result.cognitive_note,
+        status: result.status,
+        created_at: result.created_at,
+      };
+
+      dispatch({ type: 'SET_ANNOTATION', payload: annotation });
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : '未知錯誤' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, []);
+
+  const updateAnnotationStatus = useCallback(async (annotationId: string, status: string) => {
     try {
       const response = await fetch(`http://127.0.0.1:8000/annotations/${annotationId}/status`, {
         method: 'PUT',
@@ -142,6 +206,7 @@ export function NodePilotProvider({ children }: { children: React.ReactNode }) {
       value={{
         state,
         generateTeaching,
+        createAnnotation,
         updateAnnotationStatus,
         showAnnotationUI,
         hideAnnotationUI,

@@ -1,8 +1,10 @@
 export interface AnnotationData {
-  id?: number;
+  id?: string;
   url: string;
   selected_text: string;
   confusion_note: string;
+  audio_transcription?: string;
+  cognitive_note?: string;
   teaching_content?: string;
   status: 'unknown' | 'learning' | 'understood';
   created_at?: string;
@@ -13,6 +15,25 @@ export interface TeachingRequest {
   selected_text: string;
   confusion_note: string;
   audio_file?: Blob;
+}
+
+export interface CreateAnnotationRequest {
+  url: string;
+  selected_text: string;
+  confusion_note: string;
+  audio_file?: Blob;
+  page_title?: string;
+}
+
+export interface AnnotationResponse {
+  id: string;
+  url: string;
+  selected_text: string;
+  confusion_note: string;
+  audio_transcription?: string;
+  cognitive_note?: string;
+  status: 'unknown' | 'learning' | 'understood';
+  created_at: string;
 }
 
 export interface APIResponse {
