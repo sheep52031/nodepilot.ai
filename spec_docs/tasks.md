@@ -21,35 +21,42 @@
   - 設定開發環境和 HMR 熱重載
   - _需求: 1.1, 1.2_
 
-- [ ] 1.1 建立後端 API 專案（W1：基礎環境）
+- [x] 1.1 建立後端 API 專案（W1：基礎環境）
   - 使用 `uv init nodepilot-api` 建立 Python FastAPI 專案資料夾結構
   - 在 pyproject.toml 中定義 FastAPI、SQLite、OpenAI、CORS 等依賴
   - 使用 `uv venv` 建立虛擬環境，並用 `uv sync` 同步依賴套件
   - 設定 `.env` 環境變數管理 (OPENAI_API_KEY 等)
   - _需求: 1.1, 1.2_
 
-- [ ] 1.2 設定 SQLite 資料庫結構（W1：基礎環境）
+- [x] 1.2 設定 SQLite 資料庫結構（W1：基礎環境）
   - 建立 `database.py` 和 SQLAlchemy 模型定義
   - 實作 annotations 資料表 schema (url, selected_text, confusion_note, teaching_content, status)
   - 建立資料庫初始化和遷移腳本
   - 設定資料庫連接和基礎 CRUD 操作
   - _需求: 1.3_
 
-- [ ] 2. 實作 React Content Script 標註功能（W1：Extension 核心）
+- [x] 2. 實作 React Content Script 標註功能（W1：Extension 核心）
   - 建立 `entrypoints/content/index.tsx` React 元件注入功能
   - 使用 WXT Shadow DOM API 實作文字選取事件監聽
   - 建立 React 標註 UI 元件和困惑輸入表單
   - 實作選取文字高亮和位置記錄的 React Hook
   - _需求: 2.1, 2.6_
 
-- [ ] 2.1 建立 React 狀態管理和通信機制（W1：Extension 核心）
+- [x] 2.1 建立 React 狀態管理和通信機制（W1：Extension 核心）
   - 實作 React Context 全域狀態管理 (useNodePilotContext)
   - 建立 Content Script 與 Background Script 的 Chrome Messaging
   - 實作標註資料的 TypeScript 型別定義和驗證
   - 設定 React Error Boundary 和錯誤處理
   - _需求: 2.2, 2.7_
 
-- [ ] 3. 建立 FastAPI 後端服務（W1：API 開發）
+- [x] 2.2 修正 WXT React Content Script 架構（W1：架構優化）
+  - 使用 `createShadowRootUi` 取代直接 ReactDOM 注入
+  - 實作 WXT 推薦的 Shadow DOM 樣式隔離
+  - 配置 `cssInjectionMode: 'ui'` 正確載入樣式
+  - 建立 Background Script 作為 Popup-Content 通信中介
+  - _需求: 2.1, 2.6_
+
+- [x] 3. 建立 FastAPI 後端服務（W1：API 開發）
   - 實作 `POST /generate-teaching` API 端點，接收標註資料
   - 建立 CORS 配置，允許 Chrome Extension 跨域請求
   - 實作請求驗證和錯誤處理機制
@@ -63,21 +70,21 @@
   - 實作資料驗證和安全檢查
   - _需求: 2.4, 2.5, 4.1_
 
-- [ ] 4. 整合 OpenAI API 服務（W2：AI 教學生成）
+- [x] 4. 整合 OpenAI API 服務（W2：AI 教學生成）
   - 安裝和配置 OpenAI Python SDK
   - 建立 OpenAI 服務模塊，處理 API 呼叫和錯誤處理
   - 設計教學生成的 prompt template，結合選取文字、困惑描述和頁面上下文
   - 實作 API 呼叫的重試機制和速率限制
   - _需求: 3.1, 3.2_
 
-- [ ] 4.1 實作 AI 教學內容生成（W2：AI 教學生成）
+- [x] 4.1 實作 AI 教學內容生成（W2：AI 教學生成）
   - 在 `POST /generate-teaching` 中整合 OpenAI API 調用
   - 實作 prompt 工程：結合 URL、選取文字、困惑描述生成個人化教學
   - 建立 AI 回應的格式化和 Markdown 輸出處理
   - 實作教學內容與標註的關聯存儲邏輯
   - _需求: 3.3, 3.4, 3.6_
 
-- [ ] 5. 建立 React Popup Chatbot 介面（W2：UI 完善）
+- [x] 5. 建立 React Popup Chatbot 介面（W2：UI 完善）
   - 實作 `entrypoints/popup/index.tsx` React Chatbot 主應用
   - 建立 Tailwind CSS + 現代化聊天介面設計
   - 整合 react-markdown 支援 Markdown 和程式碼高亮渲染

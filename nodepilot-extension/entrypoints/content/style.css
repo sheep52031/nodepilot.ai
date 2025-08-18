@@ -1,0 +1,9 @@
+/* NodePilot Content Script Styles */
+.nodepilot-ui {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Ensure pointer events work for interactive elements */
+.nodepilot-interactive {
+  pointer-events: auto;
+}
