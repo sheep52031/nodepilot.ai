@@ -1,3 +1,4 @@
+// 可以刪除 - 已由 sidepanel/main.tsx 取代
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';

@@ -88,7 +88,7 @@
 
 /* Messages Container */
 .messages-container {
-  flex: 1;
+  height: 70%;
   overflow-y: auto;
   padding: 16px;
   background: #f8f9fa;
@@ -212,9 +212,13 @@
 
 /* Input Container */
 .input-container {
+  height: 30%;
   padding: 16px;
   background: white;
   border-top: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .input-wrapper {
