@@ -28,6 +28,7 @@ Goal: deliver working MVP features with minimal tokens.
 - spec_docs/ 資料夾包含 NodePilot V6 MVP 產品的完整規格文件
 - **主要參考**: spec_docs/NodePilot_v6 MVP 產品需求文件（PRD）.md 為產品開發準則
 - **必須回顧**: spec_docs/requirements.md, spec_docs/design.md, spec_docs/tasks.md
+- **UIUX 參考**: spec_docs/uiux/ 資料夾包含產品 UIUX 參考範例（包含 Readwise 標註機制）
 - **核心任務**: 專注執行 spec_docs/tasks.md 的實作計畫
 
 # CRITICAL NOTES (技術架構決策)

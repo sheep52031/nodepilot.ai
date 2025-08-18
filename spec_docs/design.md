@@ -98,8 +98,8 @@ sequenceDiagram
 
 ### 1. Chrome Extension 組件
 
-#### 1.1 Content Script
-- **職責**：注入標註功能到 manus.im，處理文字選取和標註顯示
+#### 1.1 Content Script（含音檔標註功能）
+- **職責**：注入標註功能到 manus.im，處理文字選取、標註顯示和音檔錄製
 - **介面**：
   ```typescript
   interface ContentScript {
@@ -107,6 +107,9 @@ sequenceDiagram
     handleTextSelection(): Promise<SelectionRange>
     showAnnotationButton(range: SelectionRange): void
     showConfusionInput(): void
+    showAudioRecordingInterface(): void
+    recordAudio(): Promise<AudioBlob>
+    transcribeAudio(audio: AudioBlob): Promise<string>
     highlightAnnotatedText(annotationId: string): void
   }
   
@@ -115,6 +118,12 @@ sequenceDiagram
     endOffset: number
     selectedText: string
     pageUrl: string
+  }
+  
+  interface AudioBlob {
+    data: Blob
+    duration: number
+    format: 'webm' | 'mp4'
   }
   ```
 
@@ -133,6 +142,8 @@ sequenceDiagram
     url: string
     selectedText: string
     confusionNote: string
+    audioTranscription?: string
+    cognitiveNote?: string
     pageTitle?: string
   }
   
@@ -173,41 +184,72 @@ sequenceDiagram
 
 ### 2. API 路由設計
 
-#### 2.1 核心 API 端點
+#### 2.1 核心 API 端點（兩階段設計）
 ```typescript
-// Chrome Extension 專用 API
+// Chrome Extension 專用 API - 分離標註和教學生成
 interface ExtensionAPIRoutes {
-  // AI 教學生成 (簡化版 - 不需要複雜的文章管理)
+  // 階段一：立即標註處理
+  'POST /annotations': (body: CreateAnnotationRequest) => Promise<AnnotationResponse>
+  'POST /upload-audio': (formData: FormData) => Promise<AudioUploadResponse>
+  'POST /transcribe-audio': (body: {audio_file_path: string}) => Promise<TranscriptionResponse>
+  'POST /generate-cognitive-note': (body: CognitiveNoteRequest) => Promise<CognitiveNoteResponse>
+  
+  // 階段二：用戶主控教學生成
   'POST /generate-teaching': (body: GenerateTeachingRequest) => Promise<TeachingResponse>
   
-  // 標註歷史管理
+  // 標註管理
   'GET /annotations': (params: {url?: string}) => Promise<Annotation[]>
   'PUT /annotations/{id}/status': (id: string, body: {status: LearningStatus}) => Promise<void>
 }
 
+// 立即標註請求（支援音檔）
+interface CreateAnnotationRequest {
+  url: string
+  selected_text: string
+  confusion_note: string
+  audio_file?: File  // 可選音檔
+  page_title?: string
+}
+
+// 教學生成請求（整合多個困惑點）
 interface GenerateTeachingRequest {
   url: string
-  selectedText: string
-  confusionNote: string
-  pageTitle?: string
-  pageContext?: string // 可選：頁面上下文
+  annotation_ids: string[]  // 多個困惑點 ID
+  page_context?: string     // 文章上下文
+}
+
+// 認知記錄生成
+interface CognitiveNoteRequest {
+  audio_transcription: string
+  selected_text: string
+  context: string
 }
 ```
 
 ### 2. 後端組件
 
-#### 2.1 OpenAI 整合模塊
+#### 2.1 OpenAI 整合模塊（含 Whisper API）
 ```typescript
 interface OpenAIService {
   generateTeaching(context: TeachingContext): Promise<string>
   createChatCompletion(messages: ChatMessage[]): Promise<string>
+  transcribeAudio(audioFile: File): Promise<AudioTranscription>
+  generateCognitiveNote(transcription: string, context: string): Promise<string>
 }
 
 interface TeachingContext {
   selectedText: string
   confusionNote: string
+  audioTranscription?: string
+  cognitiveNote?: string
   articleTitle: string
   articleContext?: string
+}
+
+interface AudioTranscription {
+  text: string
+  confidence: number
+  language: string
 }
 
 interface ChatMessage {
@@ -308,6 +350,8 @@ interface Annotation {
   articleId: string
   selectedText: string // 使用者選取的文字
   confusionNote: string // 使用者的困惑描述
+  audioTranscription?: string // Whisper API 轉錄結果
+  cognitiveNote?: string // AI 轉換的認知記錄
   generatedTeaching?: string // AI 生成的教學內容
   status: LearningStatus // 學習狀態
   createdAt: Date
@@ -338,6 +382,8 @@ CREATE TABLE annotations (
   article_id TEXT REFERENCES articles(id) ON DELETE CASCADE,
   selected_text TEXT NOT NULL,
   confusion_note TEXT NOT NULL,
+  audio_transcription TEXT,
+  cognitive_note TEXT,
   generated_teaching TEXT,
   status TEXT DEFAULT 'unknown' CHECK (status IN ('unknown', 'learning', 'understood')),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -466,8 +512,10 @@ describe('Learning Workflow', () => {
 ## 後續擴展計畫
 
 ### 技術升級路線
-1. **本地 AI 整合** - AnythingLLM + 本地模型
-2. **向量搜尋** - Qdrant 整合，改善檢索品質
-3. **複雜工作流** - LangGraph 引入，支援多步驟推理
-4. **多模態支援** - 圖片標註、語音輸入
-5. **高級學習功能** - 間隔重複、個人化推薦
+1. **音檔標註優化** - Voxtral mini 3B 本地音檔理解、音檔暫存優化
+2. **純文本閱讀器** - 參考 Readwise OpenReader，網頁內容清理技術
+3. **本地 AI 整合** - AnythingLLM + 本地模型
+4. **向量搜尋** - Qdrant 整合，改善檢索品質
+5. **複雜工作流** - LangGraph 引入，支援多步驟推理
+6. **多模態支援** - 圖片標註、進階語音輸入
+7. **高級學習功能** - 間隔重複、個人化推薦
