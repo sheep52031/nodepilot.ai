@@ -44,13 +44,34 @@ export function NodePilotProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/generate-teaching', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
+      let response;
+      
+      if (request.audio_file) {
+        // 使用 FormData 上傳音檔
+        const formData = new FormData();
+        formData.append('url', request.url);
+        formData.append('selected_text', request.selected_text);
+        formData.append('confusion_note', request.confusion_note);
+        formData.append('audio_file', request.audio_file, 'recording.webm');
+        
+        response = await fetch('http://127.0.0.1:8000/generate-teaching', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // 普通 JSON 請求
+        response = await fetch('http://127.0.0.1:8000/generate-teaching', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: request.url,
+            selected_text: request.selected_text,
+            confusion_note: request.confusion_note,
+          }),
+        });
+      }
 
       if (!response.ok) {
         throw new Error('生成教學失敗');

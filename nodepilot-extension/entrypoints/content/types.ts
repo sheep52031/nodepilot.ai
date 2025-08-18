@@ -12,6 +12,7 @@ export interface TeachingRequest {
   url: string;
   selected_text: string;
   confusion_note: string;
+  audio_file?: Blob;
 }
 
 export interface APIResponse {

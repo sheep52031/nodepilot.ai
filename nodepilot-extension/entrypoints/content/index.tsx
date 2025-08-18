@@ -15,24 +15,38 @@ function ContentApp() {
 
   useEffect(() => {
     function handleTextSelection() {
-      const selection = window.getSelection();
-      if (!selection || selection.toString().trim().length === 0) {
-        setShowAnnotationUI(false);
-        return;
-      }
-      
-      const text = selection.toString().trim();
-      if (text.length > 10) {
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
+      // 延遲檢查，確保選取完成
+      setTimeout(() => {
+        const selection = window.getSelection();
+        if (!selection || selection.toString().trim().length === 0) {
+          setShowAnnotationUI(false);
+          return;
+        }
         
-        setSelectedText(text);
-        setSelectionPosition({
-          x: rect.left + window.scrollX,
-          y: rect.bottom + window.scrollY,
-        });
-        setShowAnnotationUI(true);
-      }
+        const text = selection.toString().trim();
+        // 降低最小字元要求
+        if (text.length >= 5) {
+          try {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            
+            // 確保有有效的位置
+            if (rect.width > 0 && rect.height > 0) {
+              console.log('Selected text:', text);
+              setSelectedText(text);
+              setSelectionPosition({
+                x: rect.left + window.scrollX,
+                y: rect.bottom + window.scrollY,
+              });
+              setShowAnnotationUI(true);
+            }
+          } catch (error) {
+            console.error('Selection error:', error);
+          }
+        } else {
+          setShowAnnotationUI(false);
+        }
+      }, 100);
     }
 
     document.addEventListener('mouseup', handleTextSelection);
@@ -90,7 +104,7 @@ function ContentApp() {
 }
 
 export default defineContentScript({
-  matches: ['https://manus.im/blog/*'],
+  matches: ['https://manus.im/blog/*', 'https://manus.im/*/blog/*'],
   cssInjectionMode: 'ui',
   
   async main(ctx) {
