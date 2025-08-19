@@ -109,6 +109,9 @@ Desktop.ini
 *.orig
 *.rej
 
+# Handoff 交接單檔案 - 個人多 Claude Code 協作專用
+# 注意：團隊協作時可考慮加入排除規則
+
 # 其他
 .sass-cache/
 connect.lock

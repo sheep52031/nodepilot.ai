@@ -80,7 +80,45 @@ Goal: deliver working MVP features with minimal tokens.
 2. `git diff origin/dev --stat` - 查看與 dev 分支差異
 3. `git worktree list` - 確認 worktree 狀態
 
-## Worktree 工作流程
-- 使用 `../nodepilot-worktrees/` 目錄管理功能分支
-- AI 任務使用 `feature/ai-tasks` 分支
-- 提交格式: `[module] type: description`  
+## 多 Claude Code 協作模式 (個人開發專用)
+
+### Worktree 角色分工
+- `../nodepilot-worktrees/feature-extension` → **EXT Terminal** (前端工程師)
+- `../nodepilot-worktrees/feature-api` → **API Terminal** (後端工程師)  
+- `../nodepilot-worktrees/feature-ai-core` → **AI-CORE Terminal** (AI 系統工程師)
+
+### 檔案權限邊界 (CRITICAL)
+**我只能修改 allowed_paths 內的檔案，跨域需求必須透過 Handoff Ticket 提交**
+- 檢查當前 worktree 的角色定位
+- 嚴格遵守 `/Users/jason/.claude/output-styles/` 中對應的檔案權限
+- 跨模組需求一律使用 `.handoff/` 機制交接
+
+### Handoff 交接協議
+**遇到跨 Terminal 需求時的處理流程**：
+1. **Plan**: 先分析需求和依賴關係
+2. **Execute**: 完成自己職責範圍內的工作  
+3. **Handoff**: 產出交接單到 `.handoff/{TARGET-ROLE}/` 
+4. **Commit & Push**: 使用 `./scripts/handoff/emit_handoff.sh` 自動提交
+
+### 交接單格式 (遵守 spec_docs/handoff-protocol.md)
+```json
+{
+  "handoff_id": "20250819-1430_current_target_001",
+  "from": "CURRENT_ROLE", 
+  "to": "TARGET_ROLE",
+  "intent": "具體可測試的任務描述",
+  "inputs": {...},
+  "acceptance": ["驗收標準"],
+  "worktrees": {"from": "當前路徑", "to": "目標路徑"}
+}
+```
+
+### Git 提交策略
+- 當前角色提交格式: `[角色縮寫] scope: description`
+- 交接單提交格式: `[handoff] to TARGET_ROLE: brief description`
+- 必須先執行 preflight 檢查: `git status --porcelain`, `git diff origin/dev --name-only`
+
+### 模型池與整合 (AI-CORE 專用)
+- AI-CORE 變更需描述模型選擇與 fallback 策略
+- 整合前後需要附上最小可驗證測試
+- 多 Agent 結果一致性檢查 (對應 tasks.md 9.6)
