@@ -4,6 +4,21 @@ from sqlalchemy.orm import Session
 from database import get_db, create_tables
 from schemas import AnnotationCreate, AnnotationResponse, StatusUpdate, TeachingRequest, CreateAnnotationRequest
 from openai_service import ai_service
+from integrated_system import integrated_system
+import multi_agent_routes
+
+# 使用 API Terminal 原有的 agents.py (避免 AI-CORE agents 的循環導入)
+try:
+    # 導入 API Terminal 的 agents.py
+    import agents  # API Terminal 原始檔案
+    def register_all_agents():
+        return agents.register_all_agents()
+    AGENTS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ agents 導入失敗: {e}")
+    def register_all_agents():
+        print("⚠️ 無法註冊 agents")
+    AGENTS_AVAILABLE = False
 import crud
 import os
 from dotenv import load_dotenv
@@ -28,10 +43,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 啟動時初始化資料庫
+# 註冊多 Agent 系統路由
+app.include_router(multi_agent_routes.router)
+
+# 啟動時初始化資料庫和整合系統
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
     create_tables()
+    
+    # 初始化整合系統 (AI-CORE + API Terminal)
+    await integrated_system.initialize()
+    
+    # 註冊 API Terminal 的 Agent 作為備援
+    if AGENTS_AVAILABLE:
+        register_all_agents()
+    
+    print("🎉 NodePilot 整合系統已啟動 (AI-CORE + API Terminal)")
 
 @app.get("/")
 def read_root():
