@@ -74,6 +74,11 @@ Goal: deliver working MVP features with minimal tokens.
 # GIT 版本控制規範
 **CRITICAL**: 所有專案開發必須嚴格遵守 `spec_docs/git_rules.md`
 
+## 分支架構策略
+- **`main`**: 主要發布分支
+- **`dev`**: 乾淨的一般開發分支（無 handoff 機制，適合傳統開發）
+- **`feature/main-ai-agent`**: **多 Agent 控制台分支**（包含完整協作機制）
+
 ## AI Coding 必須執行的檢查
 每次開始編碼前：
 1. `git status --porcelain` - 檢查當前狀態
@@ -81,11 +86,24 @@ Goal: deliver working MVP features with minimal tokens.
 3. `git worktree list` - 確認 worktree 狀態
 
 ## 多 Claude Code 協作模式 (個人開發專用)
+**CRITICAL**: 協作模式專用分支為 `feature/main-ai-agent`
+
+### 控制台角色 - 多 Agent 管理者
+當前分支 `feature/main-ai-agent` 作為：
+- **專案經理 + 產品經理**：整體架構決策和任務分派
+- **多 Agent 協調器**：管理和協調三個專業 Agent Terminal
+- **核心 AI 系統整合者**：負責 Agent 間的智慧協作和結果整合
 
 ### Worktree 角色分工
 - `../nodepilot-worktrees/feature-extension` → **EXT Terminal** (前端工程師)
 - `../nodepilot-worktrees/feature-api` → **API Terminal** (後端工程師)  
 - `../nodepilot-worktrees/feature-ai-core` → **AI-CORE Terminal** (AI 系統工程師)
+
+### 控制台專屬功能
+- 使用 `scripts/handoff/emit_handoff.sh` 發送任務給專業 Agent
+- 監控 `.handoff/` 目錄中的交接狀態
+- 整合來自各 worktree 的開發成果
+- 進行跨模組的架構決策和衝突解決
 
 ### 檔案權限邊界 (CRITICAL)
 **我只能修改 allowed_paths 內的檔案，跨域需求必須透過 Handoff Ticket 提交**
