@@ -1,0 +1,95 @@
+{
+  "lastUpdated": "2025-08-19T08:30:00Z",
+  "tasks": [
+    {
+      "taskId": "9",
+      "title": "建立純 Python 多 Agent 調度系統",
+      "assignedTo": "AI-CORE",
+      "status": "pending",
+      "dependencies": [],
+      "outputs": ["Agent 調度系統架構 → API 端點設計"],
+      "estimatedHours": 6
+    },
+    {
+      "taskId": "9.1",
+      "title": "實作任務規劃 Agent（GPT-4o/Claude 3.5）",
+      "assignedTo": "AI-CORE", 
+      "status": "pending",
+      "dependencies": ["9"],
+      "outputs": ["Agent 實作完成"],
+      "estimatedHours": 4
+    },
+    {
+      "taskId": "9.2",
+      "title": "實作文章上下文分析 Agent",
+      "assignedTo": "AI-CORE",
+      "status": "pending", 
+      "dependencies": ["9"],
+      "outputs": ["Agent 實作完成"],
+      "estimatedHours": 5
+    },
+    {
+      "taskId": "9.3",
+      "title": "實作音訊語意結構化 Agent",
+      "assignedTo": "AI-CORE",
+      "status": "pending",
+      "dependencies": ["9"], 
+      "outputs": ["Agent 實作完成"],
+      "estimatedHours": 4
+    },
+    {
+      "taskId": "9.4",
+      "title": "實作筆記檢索 Agent（RAG 知識庫整合）",
+      "assignedTo": "AI-CORE",
+      "status": "pending",
+      "dependencies": ["9"],
+      "outputs": ["RAG Agent 實作 → API 串接端點"],
+      "estimatedHours": 6
+    },
+    {
+      "taskId": "9.5", 
+      "title": "實作教學內容生成 Agent（Artifacts 可視化教學）",
+      "assignedTo": "AI-CORE",
+      "status": "pending",
+      "dependencies": ["9.1", "9.2", "9.3", "9.4"],
+      "outputs": ["教學內容生成 Agent 完成"],
+      "estimatedHours": 5
+    },
+    {
+      "taskId": "9.6",
+      "title": "實作結果整合與格式化模組",
+      "assignedTo": "AI-CORE",
+      "status": "pending", 
+      "dependencies": ["9.1", "9.2", "9.3", "9.4", "9.5"],
+      "outputs": ["整合模組完成 → API 接口 → 前端 UI 顯示"],
+      "estimatedHours": 4
+    },
+    {
+      "taskId": "10",
+      "title": "建立可切換模型架構和 Fallback 系統",
+      "assignedTo": "AI-CORE",
+      "status": "pending",
+      "dependencies": ["9.1", "9.2", "9.3", "9.4", "9.5", "9.6"],
+      "outputs": ["模型管理系統 → API 配置介面"],
+      "estimatedHours": 5
+    },
+    {
+      "taskId": "10.1",
+      "title": "實作 Side Panel 多 Agent 協作介面",
+      "assignedTo": "EXT",
+      "status": "pending",
+      "dependencies": ["9.6"],
+      "outputs": ["Side Panel UI 完成"],
+      "estimatedHours": 6
+    },
+    {
+      "taskId": "5.1",
+      "title": "實作標註歷史管理",
+      "assignedTo": "EXT", 
+      "status": "pending",
+      "dependencies": ["3"],
+      "outputs": ["標註歷史 UI 完成"],
+      "estimatedHours": 4
+    }
+  ]
+}
