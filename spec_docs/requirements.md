@@ -21,6 +21,20 @@ NodePilot V6 MVP 是基於 **WXT Framework + React + TypeScript** 的現代化 C
 - **Popup Panel**: Chatbot 風格的 AI 教學介面
 - **Manifest V3**: 支援最新的擴充插件規範
 
+### 後端多 Agent LLM 架構需求
+- **純 Python 實現**: 自行實現 Context 管理和調度邏輯，避免 LangChain 複雜度
+- **Plan-and-Execute 模式**: 任務規劃 Agent 先生成 Todo List，再分派給專門 Agent 執行
+- **可切換模型架構**: 每個 Agent 支援多套模型配置和自動 fallback 機制
+- **輕量化調度器**: 基於 FastAPI 的自訂調度模組，不依賴 CrewAI 等外部框架
+
+### 核心 Agent 系統架構
+- **語音轉文字 Agent**: OpenAI Whisper API → 本地 Whisper 模型備援
+- **任務規劃 Agent**: GPT-4o / Claude 3.5 Sonnet（開發階段用 API）→ o1-preview 思維模型備援
+- **文章上下文分析 Agent**: 智能段落提取 + 文章結構樹狀分析（無需 RAG）
+- **筆記檢索 Agent**: Obsidian 筆記 RAG 系統（OpenAI text-embedding-3-large / Voyage AI）
+- **教學內容生成 Agent**: Claude 4.0 Sonnet / GPT-5 → 支援 Artifacts 可視化輸出畫布
+- **即時任務觸發**: 用戶標註時立即啟動多 Agent 協作流程
+
 ## MVP 核心價值假設
 1. **標註式學習比即時問答更有效** - 主動標記困惑點 vs 被動問答
 2. **個人化困惑描述提升 AI 教學品質** - 用使用者自己的話描述困惑
@@ -84,9 +98,26 @@ MVP 核心特色：
 - **即時 AI 認知轉換**：立即將用戶描述轉為認知記錄格式
 - **Side Panel 實時更新**：標註成功後立即更新困惑列表
 
-### 需求 3：Side Panel 困惑管理與 AI 教學生成
+### 需求 3：多 Agent 智慧上下文整理與教學生成
 
-**使用者故事：** 作為一個累積了多個困惑點的使用者，我希望在 Side Panel 中看到所有標註的困惑列表，並能自主決定何時生成 AI 教學，讓 AI 根據我累積的困惑描述和文章上下文生成整合性的個人化教學。
+**使用者故事：** 作為一個累積了多個困惑點的使用者，我希望後端的多 Agent 系統能智慧分析我的音訊困惑和文章上下文，自動規劃最佳的教學生成策略，並整合多種資訊來源生成高品質的個人化教學內容。
+
+#### 多 Agent 協作流程設計
+
+**階段一：即時任務規劃**
+1. 用戶標註困惑時立即觸發任務規劃 Agent (GPT-4o/Claude 3.5)
+2. 生成結構化 Todo List：筆記檢索、上下文分析、教學生成（去除網路搜尋）
+3. 評估任務優先級和執行順序，支援並行執行
+
+**階段二：並行 Agent 執行**
+1. 文章上下文分析 Agent：智能段落提取、概念關係、文章結構樹狀分析
+2. 筆記檢索 Agent：RAG 向量搜尋 Obsidian 筆記庫相關知識
+3. 音訊語意分析：將語音轉錄結構化為概念/疑問/情緒/意圖
+
+**階段三：Artifacts 可視化教學整合**
+1. 教學內容生成 Agent (Claude 4.0/GPT-5) 整合所有 Agent 結果
+2. 支援 Artifacts 輸出畫布：HTML 可視化教學、互動式範例、圖表生成
+3. 個人化教學風格適應 + 多層次驗證
 
 #### 工作流程設計
 

@@ -2,11 +2,16 @@ from sqlalchemy.orm import Session
 from database import Annotation, AnnotationStatus
 from typing import List, Optional
 
-def create_annotation(db: Session, url: str, selected_text: str, confusion_note: str) -> Annotation:
+def create_annotation(db: Session, url: str, selected_text: str, confusion_note: str, 
+                     page_title: Optional[str] = None, audio_transcription: Optional[str] = None, 
+                     cognitive_note: Optional[str] = None) -> Annotation:
     annotation = Annotation(
         url=url,
         selected_text=selected_text,
-        confusion_note=confusion_note
+        confusion_note=confusion_note,
+        page_title=page_title,
+        audio_transcription=audio_transcription,
+        cognitive_note=cognitive_note
     )
     db.add(annotation)
     db.commit()

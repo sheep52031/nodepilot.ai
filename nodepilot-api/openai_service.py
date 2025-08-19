@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 from functools import wraps
 import logging
 import time
+import tempfile
 from typing import Optional
+from fastapi import UploadFile
 
 load_dotenv()
 
@@ -80,6 +82,86 @@ class NodePilotAIService:
         except Exception as e:
             self.logger.error(f"生成教學內容失敗: {e}")
             return "抱歉，目前無法生成教學內容，請稍後再試。"
+    
+    @retry_decorator
+    def transcribe_audio(self, audio_file) -> Optional[str]:
+        """使用 Whisper API 轉錄音檔"""
+        try:
+            # 創建臨時檔案
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_file:
+                # 如果是 UploadFile，讀取內容
+                if hasattr(audio_file, 'read'):
+                    content = audio_file.read()
+                    if hasattr(audio_file, 'seek'):
+                        audio_file.seek(0)  # 重置指標
+                else:
+                    content = audio_file
+                
+                temp_file.write(content)
+                temp_file.flush()
+                
+                # 調用 Whisper API
+                with open(temp_file.name, 'rb') as f:
+                    response = self.client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=f,
+                        language="zh",
+                        temperature=0.0
+                    )
+                
+                # 清理臨時檔案
+                os.unlink(temp_file.name)
+                
+                return response.text
+                
+        except Exception as e:
+            self.logger.error(f"音檔轉錄失敗: {e}")
+            return None
+
+    @retry_decorator
+    def generate_cognitive_note(self, transcription: str, selected_text: str, confusion_note: str) -> Optional[str]:
+        """將音檔轉錄轉換為結構化的認知記錄"""
+        
+        system_prompt = """你是一位專業的學習分析師，專門將學習者的語音困惑轉換為清晰的認知記錄。
+        
+        你的任務是：
+        1. 分析語音轉錄內容，提取核心困惑點
+        2. 結合文字困惑描述，總結學習者的真實需求
+        3. 用結構化的方式記錄認知狀態
+        4. 識別可能的知識盲點和學習方向
+        
+        請用繁體中文，以簡潔清晰的方式整理認知記錄。"""
+
+        user_prompt = f"""
+**選取文字**: {selected_text}
+
+**文字困惑描述**: {confusion_note}
+
+**語音轉錄內容**: 
+{transcription}
+
+請將以上資訊整理成結構化的認知記錄，包含：
+- 核心困惑點
+- 具體需要理解的概念
+- 學習者的當前認知狀態
+"""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.default_model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=500,
+                temperature=0.3
+            )
+            
+            return response.choices[0].message.content.strip()
+            
+        except Exception as e:
+            self.logger.error(f"生成認知記錄失敗: {e}")
+            return None
     
     def test_connection(self) -> bool:
         """測試 OpenAI API 連接"""

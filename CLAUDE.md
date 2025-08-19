@@ -17,6 +17,11 @@ Goal: deliver working MVP features with minimal tokens.
   - **CRITICAL**: 必須使用 mcp__deepwiki__ask_question 工具查詢 repository
   - 使用場景: WXT Framework 架構、Context 感知實作、標註功能參考
 
+- **browser-debug-specialist**: 專門處理瀏覽器開發者工具問題的 Sub-agent
+  - 處理 extension debugging、content script injection 問題
+  - 使用 browser tools 分析 console errors、network logs
+  - 使用場景: WXT 擴充插件在特定網站載入失敗、JavaScript 錯誤偵錯
+
 - **MCP DeepWiki 使用規範**: 參考 spec_docs/example_references.md 中的 Repo
   - **IMPORTANT**: 使用 mcp__deepwiki__ask_question(repoName, question) 工具
   - WXT Framework 架構問題 → ask_question("wxt-dev/wxt", "your question")

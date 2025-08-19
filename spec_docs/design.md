@@ -4,65 +4,104 @@
 
 NodePilot V6 MVP 是基於 **WXT Framework + React + TypeScript** 的現代化 Chrome 擴充插件，專注驗證「個人化困惑描述 + 文章上下文」比「直接 Google 搜尋」產生更好學習效果的核心價值假設。系統採用 WXT Framework + React 18 + Tailwind CSS 前端架構，搭配 FastAPI 後端和 OpenAI API 整合。核心設計理念是「原網站文字選取→困惑描述→Chatbot 風格 AI 個人化教學」的現代化學習流程。
 
-## MVP 架構
+## MVP 多 Agent 架構設計
 
-### WXT Framework 架構圖
+### 純 Python 多 Agent LLM 系統架構圖
 
 ```mermaid
 graph TD
-  %% WXT Framework
-  subgraph WXT[WXT Framework]
-    VITE[Vite 建置系統]
-    HMR[Hot Module Replacement]
-    MANIFEST[自動 Manifest 生成]
-  end
-
-  %% React Extension Components
-  subgraph Extension[React Extension]
-    CS[Content Script UI]
+  %% WXT Frontend
+  subgraph Frontend[WXT Frontend]
+    CS[Content Script]
     BG[Background Worker] 
-    POP[Popup React App]
-    HOOKS[React Hooks & Context]
+    POP[Popup Interface]
   end
 
-  %% 頁面互動
-  subgraph Website[manus.im 網站]
-    PAGE[文章頁面]
-    SELECT[文字選取 + Shadow DOM]
-    HIGHLIGHT[React 標註 UI]
-  end
-
-  %% 後端服務
+  %% FastAPI Backend
   subgraph Backend[FastAPI 後端]
-    API[REST API]
-    OPENAI[OpenAI GPT-4]
-    DB[(SQLite)]
+    API[REST API Gateway]
+    SCHEDULER[Python 調度器]
+    CONTEXT[Context 管理模組]
   end
 
-  WXT --> Extension
-  CS -- React 元件注入 --> PAGE
-  SELECT -- 事件處理 --> CS
-  CS -- React State --> HOOKS
-  HOOKS -- Chrome Messaging --> BG
-  BG -- HTTP 請求 --> API
-  API --> OPENAI
-  OPENAI -- Markdown 回應 --> POP
-  POP -- Chatbot UI --> HOOKS
-  API --> DB
+  %% Multi-Agent System
+  subgraph MultiAgent[多 Agent 系統]
+    PLANNER[任務規劃 Agent<br/>Gemma 3N]
+    ASR[語音轉文字 Agent<br/>Whisper API]
+    CONTEXT_AGENT[文章上下文分析 Agent<br/>RAG + 段落提取]
+    NOTES[筆記檢索 Agent<br/>Obsidian 向量搜索]
+    TEACHER[教學內容生成 Agent<br/>Claude 3.5 / GPT-4o]
+    INTEGRATOR[結果整合模組<br/>Python + LLM 輔助]
+  end
+
+  %% Model Pool with Fallback
+  subgraph ModelPool[可切換模型池]
+    PRIMARY[主要模型<br/>Claude 3.5 Sonnet<br/>GPT-4o]
+    FALLBACK[備援模型<br/>GPT-4 Turbo<br/>Gemini Pro]
+    LOCAL[本地模型<br/>Llama 70B<br/>本地 Whisper]
+  end
+
+  %% Data Storage
+  subgraph Storage[資料存儲]
+    DB[(SQLite)]
+    VECTOR[(向量資料庫)]
+    OBSIDIAN[(Obsidian 筆記)]
+  end
+
+  %% Flow
+  CS --> API
+  API --> SCHEDULER
+  SCHEDULER --> PLANNER
+  PLANNER --> ASR
+  PLANNER --> CONTEXT_AGENT
+  PLANNER --> NOTES
+  PLANNER --> TEACHER
+  ASR --> INTEGRATOR
+  CONTEXT_AGENT --> INTEGRATOR
+  NOTES --> INTEGRATOR
+  TEACHER --> INTEGRATOR
+  INTEGRATOR --> API
+  
+  %% Model connections
+  PLANNER -.-> ModelPool
+  TEACHER -.-> ModelPool
+  ASR -.-> ModelPool
+  
+  %% Storage connections
+  SCHEDULER --> DB
+  NOTES --> VECTOR
+  NOTES --> OBSIDIAN
+  CONTEXT_AGENT --> VECTOR
 ```
 
-### MVP 使用者流程圖
+### 多 Agent 協作流程圖
 
 ```mermaid
 graph TD
-  A[使用者在 manus.im 閱讀文章] --> B[選取不懂的文字]
-  B --> C[文字高亮 + 標註按鈕顯示]
-  C --> D[點擊標註，輸入困惑描述]
-  D --> E[提交給 AI 分析]
-  E --> F[AI 結合文章上下文 + 困惑描述]
-  F --> G[生成個人化教學內容]
-  G --> H[在 Popup 顯示 AI 教學]
-  H --> I[使用者標記學習狀態]
+  A[用戶選取文字 + 音訊困惑] --> B[任務規劃 Agent<br/>Gemma 3N]
+  B --> C{生成 Todo List}
+  
+  %% Parallel Execution
+  C --> D[語音轉文字 Agent<br/>Whisper API]
+  C --> E[文章上下文分析 Agent<br/>RAG + 段落分析]
+  C --> F[筆記檢索 Agent<br/>Obsidian 向量搜索]
+  
+  %% Audio Processing
+  D --> G[音訊語意結構化<br/>概念/疑問/情緒/意圖]
+  
+  %% Context Analysis
+  E --> H[智慧段落提取<br/>相關上下文識別]
+  
+  %% Knowledge Retrieval
+  F --> I[相關筆記檢索<br/>歷史學習記錄]
+  
+  %% Integration
+  G --> J[教學內容生成 Agent<br/>Claude 3.5 / GPT-4o]
+  H --> J
+  I --> J
+  
+  J --> K[結果整合模組<br/>個人化教學適應]
+  K --> L[Chatbot 介面呈現<br/>多層次驗證結果]
 ```
 
 ### MVP 使用者流程
