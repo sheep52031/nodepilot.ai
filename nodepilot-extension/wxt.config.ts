@@ -8,11 +8,6 @@ export default defineConfig({
     description: 'AI-powered annotation and personalized teaching for technical articles',
     version: '1.0.0',
     permissions: ['storage', 'activeTab'],
-    content_scripts: [
-      {
-        matches: ['https://manus.im/blog/*'],
-        js: ['content-scripts/content.js'],
-      },
-    ],
+    host_permissions: ['https://manus.im/*', 'http://127.0.0.1:8000/*'],
   },
 });

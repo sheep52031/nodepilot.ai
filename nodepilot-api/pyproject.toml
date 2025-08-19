@@ -1,0 +1,16 @@
+[project]
+name = "nodepilot-api"
+version = "0.1.0"
+description = "NodePilot AI Teaching API Backend"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy",
+    "openai",
+    "python-dotenv",
+    "python-multipart",
+    "pydantic",
+    "httpx"
+]
