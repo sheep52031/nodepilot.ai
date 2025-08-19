@@ -12,5 +12,6 @@ dependencies = [
     "python-dotenv",
     "python-multipart",
     "pydantic",
-    "httpx"
+    "httpx",
+    "pydantic-settings>=2.10.1",
 ]

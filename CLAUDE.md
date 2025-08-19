@@ -17,11 +17,6 @@ Goal: deliver working MVP features with minimal tokens.
   - **CRITICAL**: 必須使用 mcp__deepwiki__ask_question 工具查詢 repository
   - 使用場景: WXT Framework 架構、Context 感知實作、標註功能參考
 
-- **browser-debug-specialist**: 專門處理瀏覽器開發者工具問題的 Sub-agent
-  - 處理 extension debugging、content script injection 問題
-  - 使用 browser tools 分析 console errors、network logs
-  - 使用場景: WXT 擴充插件在特定網站載入失敗、JavaScript 錯誤偵錯
-
 - **MCP DeepWiki 使用規範**: 參考 spec_docs/example_references.md 中的 Repo
   - **IMPORTANT**: 使用 mcp__deepwiki__ask_question(repoName, question) 工具
   - WXT Framework 架構問題 → ask_question("wxt-dev/wxt", "your question")
@@ -82,69 +77,12 @@ Goal: deliver working MVP features with minimal tokens.
 # GIT 版本控制規範
 **CRITICAL**: 所有專案開發必須嚴格遵守 `spec_docs/git_rules.md`
 
-## 分支架構策略
-- **`main`**: 主要發布分支
-- **`dev`**: 乾淨的一般開發分支（無 handoff 機制，適合傳統開發）
-- **`feature/main-ai-agent`**: **多 Agent 控制台分支**（包含完整協作機制）
-
 ## AI Coding 必須執行的檢查
 每次開始編碼前：
 1. `git status --porcelain` - 檢查當前狀態
 2. `git diff origin/dev --stat` - 查看與 dev 分支差異
 3. `git worktree list` - 確認 worktree 狀態
 
-## 多 Claude Code 協作模式 (個人開發專用)
-**CRITICAL**: 協作模式專用分支為 `feature/main-ai-agent`
-
-### 控制台角色 - 多 Agent 管理者
-當前分支 `feature/main-ai-agent` 作為：
-- **專案經理 + 產品經理**：整體架構決策和任務分派
-- **多 Agent 協調器**：管理和協調三個專業 Agent Terminal
-- **核心 AI 系統整合者**：負責 Agent 間的智慧協作和結果整合
-
-### Worktree 角色分工
-- `../nodepilot-worktrees/feature-extension` → **EXT Terminal** (前端工程師)
-- `../nodepilot-worktrees/feature-api` → **API Terminal** (後端工程師)  
-- `../nodepilot-worktrees/feature-ai-core` → **AI-CORE Terminal** (AI 系統工程師)
-
-### 控制台專屬功能
-- 使用 `scripts/handoff/emit_handoff.sh` 發送任務給專業 Agent
-- 監控 `.handoff/` 目錄中的交接狀態
-- 整合來自各 worktree 的開發成果
-- 進行跨模組的架構決策和衝突解決
-
-### 檔案權限邊界 (CRITICAL)
-**我只能修改 allowed_paths 內的檔案，跨域需求必須透過 Handoff Ticket 提交**
-- 檢查當前 worktree 的角色定位
-- 嚴格遵守 `/Users/jason/.claude/output-styles/` 中對應的檔案權限
-- 跨模組需求一律使用 `.handoff/` 機制交接
-
-### Handoff 交接協議
-**遇到跨 Terminal 需求時的處理流程**：
-1. **Plan**: 先分析需求和依賴關係
-2. **Execute**: 完成自己職責範圍內的工作  
-3. **Handoff**: 產出交接單到 `.handoff/{TARGET-ROLE}/` 
-4. **Commit & Push**: 使用 `./scripts/handoff/emit_handoff.sh` 自動提交
-
-### 交接單格式 (遵守 spec_docs/handoff-protocol.md)
-```json
-{
-  "handoff_id": "20250819-1430_current_target_001",
-  "from": "CURRENT_ROLE", 
-  "to": "TARGET_ROLE",
-  "intent": "具體可測試的任務描述",
-  "inputs": {...},
-  "acceptance": ["驗收標準"],
-  "worktrees": {"from": "當前路徑", "to": "目標路徑"}
-}
-```
-
-### Git 提交策略
-- 當前角色提交格式: `[角色縮寫] scope: description`
-- 交接單提交格式: `[handoff] to TARGET_ROLE: brief description`
-- 必須先執行 preflight 檢查: `git status --porcelain`, `git diff origin/dev --name-only`
-
-### 模型池與整合 (AI-CORE 專用)
-- AI-CORE 變更需描述模型選擇與 fallback 策略
-- 整合前後需要附上最小可驗證測試
-- 多 Agent 結果一致性檢查 (對應 tasks.md 9.6)
+## Worktree 工作流程
+- 使用 `../nodepilot-worktrees/` 目錄管理功能分支
+- 提交格式: `[module] type: description`

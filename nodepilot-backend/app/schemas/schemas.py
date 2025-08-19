@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from database import AnnotationStatus
+from app.models.database import AnnotationStatus
 from typing import Optional
 from datetime import datetime
 

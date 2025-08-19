@@ -1,6 +1,7 @@
 import ReactDOM from 'react-dom/client';
 import { NodePilotProvider } from './context';
 import { AnnotationUI } from './components/AnnotationUI';
+import { TeachingResult } from './components/TeachingResult';
 import './style.css';
 
 // ContentApp 組件已移除，邏輯直接在 main 函數中處理

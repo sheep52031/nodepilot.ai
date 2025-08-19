@@ -29,28 +29,45 @@ function App() {
     scrollToBottom();
   }, [messages]);
 
-  // 監聽來自 Background Script 的消息
+  // 監聽來自 Content Script 的標註消息
   useEffect(() => {
     const messageListener = (message: any) => {
-      if (message.type === 'FROM_CONTENT') {
-        // 處理來自 Content Script 的標註資料
-        if (message.data.action === 'annotation') {
-          const annotationMessage: ChatMessage = {
-            id: Date.now().toString(),
+      console.log('Side panel received message:', message);
+      
+      if (message.type === 'ANNOTATION_CREATED') {
+        const annotation = message.payload;
+        const hasAudio = annotation.audio_transcription ? '🎵 ' : '📝 ';
+        
+        // 添加標註記錄消息
+        const annotationMessage: ChatMessage = {
+          id: `annotation-${annotation.id}`,
+          type: 'assistant',
+          content: `${hasAudio}**標註已完成**\n\n📍 **選取文字**：${annotation.selected_text.substring(0, 100)}...\n\n🤔 **您的困惑**：${annotation.confusion_note}\n\n${annotation.audio_transcription ? `🎵 **音頻轉錄**：${annotation.audio_transcription}\n\n` : ''}✨ **AI 已為您生成個人化教學內容**\n\n---\n\n${annotation.teaching_content}`,
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, annotationMessage]);
+        
+        // 添加學習狀態提示
+        setTimeout(() => {
+          const statusMessage: ChatMessage = {
+            id: `status-${annotation.id}`,
             type: 'assistant',
-            content: `檢測到新的標註：「${message.data.text}」\n我正在分析這段內容...`,
+            content: '💡 **學習狀態更新提醒**\n\n這段內容對您有幫助嗎？請在文章中點擊螢光筆標記來更新學習狀態：\n\n✅ 已理解 | 📚 學習中',
             timestamp: new Date()
           };
-          setMessages(prev => [...prev, annotationMessage]);
-        }
+          setMessages(prev => [...prev, statusMessage]);
+        }, 1000);
       }
     };
 
-    browser.runtime.onMessage.addListener(messageListener);
-    
-    return () => {
-      browser.runtime.onMessage.removeListener(messageListener);
-    };
+    // 使用 Chrome API 監聽消息
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.onMessage.addListener(messageListener);
+      return () => {
+        chrome.runtime.onMessage.removeListener(messageListener);
+      };
+    }
   }, []);
 
   const handleSendMessage = async () => {

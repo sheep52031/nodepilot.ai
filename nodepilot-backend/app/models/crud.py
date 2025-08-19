@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from database import Annotation, AnnotationStatus
+from .database import Annotation, AnnotationStatus
 from typing import List, Optional
 
 def create_annotation(db: Session, url: str, selected_text: str, confusion_note: str, 

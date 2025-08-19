@@ -5,14 +5,14 @@ NodePilot 多 Agent 系統 API 路由
 
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 from sqlalchemy.orm import Session
-from database import get_db
-from schemas import AnnotationResponse
-from agent_scheduler import agent_scheduler
-from model_manager import model_manager
-from rag_service import rag_service
-from result_formatter import result_integration_service
-from integrated_system import integrated_system
-import crud
+from app.models.database import get_db
+from app.schemas.schemas import AnnotationResponse
+from app.services.agent_scheduler import agent_scheduler
+from app.services.model_manager import model_manager
+from app.services.rag_service import rag_service
+from app.services.result_formatter import result_integration_service
+from app.services.integrated_system import integrated_system
+from app.models import crud
 from typing import Optional, List
 
 # 建立 APIRouter
@@ -179,7 +179,7 @@ async def multi_agent_generate_teaching(
         
     except Exception as e:
         # 降級：使用原有的單一 AI 服務
-        from openai_service import ai_service
+        from app.services.openai_service import ai_service
         
         try:
             annotation = crud.create_annotation(
