@@ -1,0 +1,16 @@
+# 核心服務
+fastapi>=0.100.0
+uvicorn[standard]==0.35.0
+pydantic==2.11.7
+
+# 音頻處理
+librosa>=0.10.0
+soundfile>=0.12.0
+numpy>=1.24.0,<1.27.0
+
+# ONNX Runtime GPU (注意: librosa 會帶入 CPU 版本，需要後續修復)
+onnxruntime-gpu>=1.20.0
+
+# Tokenizer 和模型下載
+tokenizers>=0.19.1
+huggingface_hub>=0.15.0
