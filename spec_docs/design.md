@@ -4,9 +4,9 @@
 
 NodePilot V6 MVP 是基於 **WXT Framework + React + TypeScript** 的現代化 Chrome 擴充插件，專注驗證「個人化困惑描述 + 文章上下文」比「直接 Google 搜尋」產生更好學習效果的核心價值假設。系統採用 WXT Framework + React 18 + Tailwind CSS 前端架構，搭配 FastAPI 後端和 OpenAI API 整合。核心設計理念是「原網站文字選取→困惑描述→Chatbot 風格 AI 個人化教學」的現代化學習流程。
 
-## MVP 多 Agent 架構設計
+## MVP 微服務架構設計 (更新)
 
-### 純 Python 多 Agent LLM 系統架構圖
+### 微服務 + 多 Agent 系統架構圖
 
 ```mermaid
 graph TD
@@ -17,28 +17,37 @@ graph TD
     POP[Popup Interface]
   end
 
-  %% FastAPI Backend
-  subgraph Backend[FastAPI 後端]
+  %% Main Backend Service
+  subgraph MainBackend[NodePilot 主後端服務]
     API[REST API Gateway]
     SCHEDULER[Python 調度器]
     CONTEXT[Context 管理模組]
+    CLIENT[Voxtral 客戶端]
   end
 
-  %% Multi-Agent System
+  %% Voxtral Microservice
+  subgraph VoxtralService[Voxtral 推理微服務]
+    DOCKER[Docker 容器]
+    VOXTRAL[Voxtral Mini 3B Q4]
+    ONNX[ONNX Runtime GPU]
+    APIS[REST API 接口]
+  end
+
+  %% Multi-Agent System (Updated)
   subgraph MultiAgent[多 Agent 系統]
-    PLANNER[任務規劃 Agent<br/>Gemma 3N]
-    ASR[語音轉文字 Agent<br/>Whisper API]
+    PLANNER[任務規劃 Agent<br/>GPT-4o / Claude 3.5]
+    ASR[語音轉文字 Agent<br/>Voxtral Q4 微服務]
     CONTEXT_AGENT[文章上下文分析 Agent<br/>RAG + 段落提取]
     NOTES[筆記檢索 Agent<br/>Obsidian 向量搜索]
     TEACHER[教學內容生成 Agent<br/>Claude 3.5 / GPT-4o]
     INTEGRATOR[結果整合模組<br/>Python + LLM 輔助]
   end
 
-  %% Model Pool with Fallback
-  subgraph ModelPool[可切換模型池]
-    PRIMARY[主要模型<br/>Claude 3.5 Sonnet<br/>GPT-4o]
-    FALLBACK[備援模型<br/>GPT-4 Turbo<br/>Gemini Pro]
-    LOCAL[本地模型<br/>Llama 70B<br/>本地 Whisper]
+  %% Model Pool with Fallback (Updated)
+  subgraph ModelPool[混合模型池]
+    LOCAL_VOICE[本地語音模型<br/>Voxtral Mini 3B Q4<br/>RTX 3080 GPU]
+    CLOUD_LLM[雲端 LLM<br/>Claude 3.5 Sonnet<br/>GPT-4o]
+    FALLBACK[備援模型<br/>Whisper API<br/>GPT-4 Turbo]
   end
 
   %% Data Storage
@@ -48,7 +57,13 @@ graph TD
     OBSIDIAN[(Obsidian 筆記)]
   end
 
-  %% Flow
+  %% Development Architecture
+  subgraph DevArch[開發架構]
+    LINUX[Linux RTX 3080<br/>推理伺服器]
+    MACOS[MacBook Air<br/>遠端開發]
+  end
+
+  %% Flow (Updated for Microservices)
   CS --> API
   API --> SCHEDULER
   SCHEDULER --> PLANNER
@@ -62,16 +77,27 @@ graph TD
   TEACHER --> INTEGRATOR
   INTEGRATOR --> API
   
-  %% Model connections
-  PLANNER -.-> ModelPool
-  TEACHER -.-> ModelPool
-  ASR -.-> ModelPool
+  %% Microservice communication
+  CLIENT --> APIS
+  ASR --> CLIENT
+  APIS --> VOXTRAL
+  VOXTRAL --> ONNX
+  
+  %% Model connections (Updated)
+  PLANNER -.-> CLOUD_LLM
+  TEACHER -.-> CLOUD_LLM
+  ASR -.-> LOCAL_VOICE
+  ASR -.-> FALLBACK
   
   %% Storage connections
   SCHEDULER --> DB
   NOTES --> VECTOR
   NOTES --> OBSIDIAN
   CONTEXT_AGENT --> VECTOR
+  
+  %% Development flow
+  MACOS -.-> LINUX
+  LINUX --> VoxtralService
 ```
 
 ### 多 Agent 協作流程圖
@@ -221,6 +247,42 @@ sequenceDiagram
   }
   ```
 
+#### 1.4 Reader Tab 頁面
+- **職責**：提供純文本閱讀體驗，整合標註功能
+- **介面**：
+  ```typescript
+  interface ReaderTab {
+    extractArticleContent(url: string): Promise<ArticleContent>
+    openReaderTab(content: ArticleContent): Promise<void>
+    renderCleanContent(content: ArticleContent): void
+    enableAnnotationFeature(): void
+    toggleDarkMode(): void
+    updateReadingProgress(): void
+  }
+  
+  interface ArticleContent {
+    title: string
+    content: string // 清理後的 HTML 內容
+    images: ArticleImage[]
+    metadata: ArticleMetadata
+    originalUrl: string
+  }
+  
+  interface ArticleImage {
+    src: string // 絕對路徑
+    alt?: string
+    width?: number
+    height?: number
+  }
+  
+  interface ContentExtractor {
+    extractMainContent(document: Document): string
+    extractImages(document: Document): ArticleImage[]
+    cleanContent(html: string): string
+    convertRelativeUrls(html: string, baseUrl: string): string
+  }
+  ```
+
 ### 2. API 路由設計
 
 #### 2.1 核心 API 端點（兩階段設計）
@@ -239,6 +301,10 @@ interface ExtensionAPIRoutes {
   // 標註管理
   'GET /annotations': (params: {url?: string}) => Promise<Annotation[]>
   'PUT /annotations/{id}/status': (id: string, body: {status: LearningStatus}) => Promise<void>
+  
+  // Reader 內容擷取
+  'POST /extract-content': (body: ExtractContentRequest) => Promise<ArticleContentResponse>
+  'GET /reader-content/{id}': (id: string) => Promise<ArticleContentResponse>
 }
 
 // 立即標註請求（支援音檔）
@@ -263,17 +329,55 @@ interface CognitiveNoteRequest {
   selected_text: string
   context: string
 }
+
+// Reader 內容擷取請求
+interface ExtractContentRequest {
+  url: string
+  extract_images?: boolean  // 是否擷取圖片，預設 true
+  clean_content?: boolean   // 是否清理內容，預設 true
+}
+
+// Reader 內容回應
+interface ArticleContentResponse {
+  id: string
+  title: string
+  content: string          // 清理後的 HTML
+  clean_text: string       // 純文字版本
+  images: ArticleImage[]
+  metadata: {
+    author?: string
+    publish_date?: string
+    word_count: number
+    read_time: number      // 預估閱讀時間（分鐘）
+  }
+  original_url: string
+  extracted_at: Date
+}
 ```
 
 ### 2. 後端組件
 
-#### 2.1 OpenAI 整合模塊（含 Whisper API）
+#### 2.1 語音處理微服務整合 (更新)
 ```typescript
-interface OpenAIService {
-  generateTeaching(context: TeachingContext): Promise<string>
-  createChatCompletion(messages: ChatMessage[]): Promise<string>
+interface VoxtralService {
+  // Voxtral 微服務客戶端
+  inference(audioData: ArrayBuffer, task: string): Promise<VoxtralResponse>
+  uploadInference(file: File, task: string): Promise<VoxtralResponse>
+  healthCheck(): Promise<ServiceHealth>
+  isServiceAvailable(): Promise<boolean>
+}
+
+interface AudioService {
+  // 音頻處理服務 (含備援機制)
   transcribeAudio(audioFile: File): Promise<AudioTranscription>
   generateCognitiveNote(transcription: string, context: string): Promise<string>
+  // 優先使用 Voxtral Q4，備援 Whisper API
+}
+
+interface OpenAIService {
+  // 保留原有文字生成功能
+  generateTeaching(context: TeachingContext): Promise<string>
+  createChatCompletion(messages: ChatMessage[]): Promise<string>
 }
 
 interface TeachingContext {
@@ -297,7 +401,7 @@ interface ChatMessage {
 }
 ```
 
-#### 2.2 文章抓取模塊
+#### 2.2 文章抓取模塊（更新支援 Reader）
 ```typescript
 interface ArticleScraper {
   fetchArticle(url: string): Promise<ScrapedArticle>
@@ -318,6 +422,30 @@ interface ArticleMetadata {
   description?: string
   keywords?: string[]
 }
+
+// Reader 內容擷取服務
+interface ContentExtractionService {
+  extractArticleContent(url: string, options?: ExtractionOptions): Promise<ArticleContentResponse>
+  cleanHtmlContent(html: string): Promise<string>
+  extractImages(document: Document, baseUrl: string): Promise<ArticleImage[]>
+  convertRelativeUrls(html: string, baseUrl: string): string
+  estimateReadingTime(content: string): number
+  saveExtractedContent(content: ArticleContentResponse): Promise<string>
+}
+
+interface ExtractionOptions {
+  extractImages: boolean
+  cleanContent: boolean
+  preserveFormatting: boolean
+}
+
+// 內容清理服務
+interface ContentCleanerService {
+  removeAds(html: string): string
+  removeNavigation(html: string): string
+  extractMainArticle(document: Document): Element | null
+  preserveImportantElements(html: string): string
+}
 ```
 
 ### 3. 資料存儲組件
@@ -337,12 +465,40 @@ interface AnnotationRepository {
   getAnnotation(id: string): Promise<Annotation | null>
 }
 
+// Reader 內容儲存庫
+interface ReaderContentRepository {
+  saveReaderContent(content: ReaderContent): Promise<string>
+  getReaderContent(id: string): Promise<ReaderContent | null>
+  getReaderContentByUrl(url: string): Promise<ReaderContent | null>
+  listReaderContent(): Promise<ReaderContent[]>
+  deleteReaderContent(id: string): Promise<void>
+}
+
 interface Article {
   id: string
   url: string
   title: string
   content: string
   createdAt: Date
+}
+
+// Reader 內容資料模型
+interface ReaderContent {
+  id: string
+  url: string
+  title: string
+  content: string          // 清理後的 HTML 內容
+  cleanText: string        // 純文字內容
+  images: ArticleImage[]   // 文章圖片
+  metadata: {
+    author?: string
+    publishDate?: Date
+    wordCount: number
+    readTime: number       // 預估閱讀時間（分鐘）
+  }
+  extractedAt: Date
+  createdAt: Date
+  updatedAt: Date
 }
 ```
 
@@ -429,9 +585,28 @@ CREATE TABLE annotations (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Reader 內容資料表
+CREATE TABLE reader_content (
+  id TEXT PRIMARY KEY,
+  url TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,  -- 清理後的 HTML
+  clean_text TEXT NOT NULL,  -- 純文字版本
+  images TEXT,  -- JSON 格式儲存圖片陣列
+  author TEXT,
+  publish_date DATETIME,
+  word_count INTEGER DEFAULT 0,
+  read_time INTEGER DEFAULT 0,  -- 閱讀時間（分鐘）
+  extracted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 索引
 CREATE INDEX idx_annotations_article_id ON annotations(article_id);
 CREATE INDEX idx_annotations_status ON annotations(status);
+CREATE INDEX idx_reader_content_url ON reader_content(url);
+CREATE INDEX idx_reader_content_created_at ON reader_content(created_at);
 ```
 
 ## MVP 錯誤處理

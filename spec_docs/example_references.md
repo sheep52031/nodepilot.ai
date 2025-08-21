@@ -1,4 +1,9 @@
 
+# onnx-community/Voxtral-Mini-3B-2507-ONNX
+https://huggingface.co/onnx-community/Voxtral-Mini-3B-2507-ONNX
+
+
+
 # WXT 框架Document
 https://deepwiki.com/wxt-dev/wxt (WXT官方的DeepWiki 用法不懂直接用DeepWiki MCP "ask")
 https://wxt.dev/guide/installation.html (WXT官方文檔)

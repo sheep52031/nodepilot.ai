@@ -23,9 +23,16 @@ class Settings(BaseSettings):
     anthropic_api_key: Optional[str] = None
     ai_provider: str = "openai"
     
+    # Voxtral 設定
+    voxtral_api_url: str = "http://localhost:8001"
+    
+    # 其他設定
+    log_level: str = "INFO"
+    secret_key: str = "your-secret-key-change-in-production"
+    
     # API 設定
     api_v1_prefix: str = "/api/v1"
-    cors_origins: list = ["http://localhost:3000", "https://manus.im"]
+    cors_origins: list = ["*"]
     allowed_origins: Optional[str] = None
     
     class Config:

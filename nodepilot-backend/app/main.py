@@ -4,10 +4,13 @@ NodePilot API - 重構後的主應用檔案
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.models.database import create_tables
 from app.api.v1.agents import router as agents_router
+from app.api.voxtral_localai import router as voxtral_router
+from app.api.voxtral_audio import router as voxtral_audio_router
 from app.services.integrated_system import integrated_system
 
 
@@ -34,6 +37,24 @@ def create_application() -> FastAPI:
         prefix=settings.api_v1_prefix,
         tags=["agents"]
     )
+    
+    # Voxtral LocalAI 路由 (用於 AnythingLLM 整合)
+    app.include_router(
+        voxtral_router,
+        tags=["voxtral-localai"]
+    )
+    
+    # Voxtral Audio 路由 (語音處理)
+    app.include_router(
+        voxtral_audio_router,
+        tags=["voxtral-audio"]
+    )
+    
+    # 掛載靜態檔案目錄
+    import os
+    static_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+    if os.path.exists(static_path):
+        app.mount("/static", StaticFiles(directory=static_path), name="static")
     
     return app
 

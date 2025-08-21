@@ -2,6 +2,8 @@ import ReactDOM from 'react-dom/client';
 import { NodePilotProvider } from './context';
 import { AnnotationUI } from './components/AnnotationUI';
 import { TeachingResult } from './components/TeachingResult';
+import { ReaderBar } from './components/ReaderBar';
+import { ContentExtractor } from './utils/contentExtractor';
 import './style.css';
 
 // ContentApp 組件已移除，邏輯直接在 main 函數中處理
@@ -16,6 +18,8 @@ export default defineContentScript({
     // 全局變量
     let currentRoot: ReactDOM.Root | null = null;
     let currentUI: any = null;
+    let readerButtonRoot: ReactDOM.Root | null = null;
+    let readerButtonUI: any = null;
 
     // 文字選取處理邏輯
     const handleMouseUp = (event: Event) => {
@@ -171,6 +175,96 @@ export default defineContentScript({
       }
     };
 
+    // 顯示 Reader 橫槓 (類似 Readwise)
+    const showReaderButton = () => {
+      hideReaderButton(); // 先清理舊的按鈕
+
+      // 創建頂部橫槓容器
+      const hostElement = document.createElement('div');
+      hostElement.id = 'nodepilot-reader-bar-host';
+      hostElement.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50px;
+        background: #1a1a1a;
+        border-bottom: 1px solid #333;
+        z-index: 999999;
+        pointer-events: auto;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      `;
+      
+      document.body.appendChild(hostElement);
+      
+      // 調整頁面內容下移，避免被橫槓遮擋
+      document.body.style.marginTop = '50px';
+      
+      // 創建 React 應用容器
+      const app = document.createElement('div');
+      app.id = 'nodepilot-reader-button-app';
+      hostElement.appendChild(app);
+      
+      readerButtonRoot = ReactDOM.createRoot(app);
+      readerButtonRoot.render(
+        <NodePilotProvider>
+          <ReaderBar
+            onOpenReader={handleOpenReader}
+            onClose={hideReaderButton}
+          />
+        </NodePilotProvider>
+      );
+      
+      // 記錄 hostElement 用於清理
+      readerButtonUI = { 
+        hostElement,
+        remove: () => {
+          if (hostElement.parentNode) {
+            hostElement.parentNode.removeChild(hostElement);
+          }
+        }
+      };
+    };
+
+    // 隱藏 Reader 橫槓
+    const hideReaderButton = () => {
+      if (readerButtonUI) {
+        readerButtonUI.remove();
+        readerButtonUI = null;
+      }
+      if (readerButtonRoot) {
+        readerButtonRoot.unmount();
+        readerButtonRoot = null;
+      }
+      
+      // 恢復頁面原始狀態
+      document.body.style.marginTop = '';
+    };
+
+    // 處理 Open in Reader
+    const handleOpenReader = async () => {
+      console.log('Opening article in Reader...');
+      
+      try {
+        const extractor = new ContentExtractor();
+        const extractedContent = await extractor.extractArticleContent();
+        
+        console.log('Extracted content:', extractedContent);
+        
+        // 通過 background script 開啟 Reader Tab
+        const response = await browser.runtime.sendMessage({
+          type: 'OPEN_READER',
+          data: extractedContent,
+        });
+        
+        console.log('Reader opened:', response);
+        
+      } catch (error) {
+        console.error('Failed to open Reader:', error);
+        alert('無法開啟 Reader，請稍後再試');
+      }
+    };
+
     // 使用 ctx.addEventListener 進行事件綁定
     ctx.addEventListener(document, 'mouseup', handleMouseUp, { capture: true });
     ctx.addEventListener(document, 'keydown', handleKeyDown, { capture: true });
@@ -199,9 +293,18 @@ export default defineContentScript({
     
     document.body.appendChild(hintElement);
 
+    // 監聽來自 background 的訊息 (點擊擴充套件圖示)
+    browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      if (message.type === 'SHOW_READER_BAR') {
+        showReaderButton();
+        sendResponse({ success: true });
+      }
+    });
+
     // 返回清理函數
     return () => {
       hideAnnotationUI();
+      hideReaderButton();
       if (hintElement.parentNode) {
         hintElement.parentNode.removeChild(hintElement);
       }

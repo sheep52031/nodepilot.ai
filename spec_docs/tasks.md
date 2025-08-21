@@ -1,14 +1,16 @@
 # NodePilot V6 MVP 實作計畫
 
-## MVP 核心目標
+## MVP 核心目標 (更新)
 
-基於純 Python 多 Agent LLM 架構，實現智慧音訊困惑分析和個人化教學生成，驗證「多 Agent 協作 + 音訊語意理解」比傳統單一模型產生更優質學習體驗的核心價值假設。
+基於**微服務 + 多 Agent** 架構，實現智慧音訊困惑分析和個人化教學生成。核心特色為 **Voxtral Mini 3B Q4 本地語音推理** + 雲端 LLM 教學生成，驗證「本地量化模型 + 微服務架構」比傳統雲端方案提供更好的**隱私保護**和**響應速度**。
 
-## 技術架構：WXT Extension + 純 Python 多 Agent 後端
+## 技術架構：微服務 + WXT Extension + 多 Agent 後端 (更新)
 
 - 前端: WXT Framework + React 18 + TypeScript
-- 後端: FastAPI + 純 Python 多 Agent 系統（非 LangChain/CrewAI）
-- AI 架構: Plan-and-Execute 模式，可切換模型池
+- 主後端: FastAPI + uv 套件管理 + 多 Agent 系統
+- **語音微服務**: Voxtral Mini 3B Q4 + Docker + RTX 3080 GPU
+- **開發模式**: Linux RTX 3080 推理伺服器 + MacBook Air 遠端開發
+- AI 架構: 本地語音 + 雲端 LLM 混合推理
 - 白名單: 僅限 https://manus.im/blog/*
 
 ## 多 Terminal 協作任務分派
@@ -31,22 +33,40 @@
 
 ### 📊 任務9進度概覽 (多Agent系統實作)
 
-**✅ 已完成核心功能 (2025-08-19):**
+**✅ 已完成核心功能 (2025-08-20):**
 - 9.0 多Agent系統基礎架構 (FastAPI + 分層架構)
 - 9.1 音頻處理端點和Agent (Whisper API + 檔案上傳)
 - 9.2 多模態內容整合 (文字+音頻→學習筆記生成)
-- 9.9 Voxtral Mini 3B 音訊直接處理 (多層級：遠端RTX3080 + 本地Replicate + Whisper備案)
+- **9.9 Voxtral Mini 3B Q4 微服務架構** (Docker + RTX 3080 + ONNX Runtime)
+- **9.10 微服務語音推理整合** (HTTP API 客戶端 + 備援機制)
+- **9.11 本地 Q4 量化模型測試環境** (為高通筆電 QNN 轉換做準備)
 
 **🔄 部分完成:**
 - 9.5 基礎音頻語意分析 (GPT-3.5-turbo 結構化分析)
 
 **⏳ 待實作:**
-- 9.10 RTX 3080 遠端部署和性能測試 (需切換電腦執行)
+- **10.0 高通筆電 QNN 轉換測試** (Q4 ONNX → QNN 格式轉換)
+- **9.11 NodePilot 主系統整合 Voxtral 微服務** (後端 API 客戶端實作)
 - 9.3-9.8 進階Agent功能 (任務規劃、上下文分析、RAG檢索等)
+- **11.0 WXT 擴充插件前端整合** (與微服務後端 API 整合)
 
-**✨ 已驗證測試案例:**
+**✨ 已驗證測試案例 (更新):**
 ```bash
-# 成功測試多層級 Voxtral 音頻處理 API
+# Voxtral Q4 微服務健康檢查
+curl http://localhost:8001/health
+
+# 微服務語音推理測試
+curl -X POST http://localhost:8001/inference/upload \
+  -F "file=@test.wav" \
+  -F "task=transcribe" \
+  -F "language=zh"
+
+# NodePilot 主後端整合測試
+curl -X POST "http://127.0.0.1:8000/voxtral/audio/process" \
+  -H "Content-Type: application/json" \
+  -d '{"audio_data": "base64_audio", "mode": "transcribe", "output_language": "zh"}'
+
+# 成功測試多層級 Voxtral 音頻處理 API (舊版)
 curl -X POST "http://127.0.0.1:8000/api/v1/multi-agent/generate-teaching-integrated" \
   -F "audio_file=@test_audio.wav" \
   -F "confusion_note=我需要理解Python的類別概念"
@@ -121,29 +141,43 @@ export VOXTRAL_REMOTE_API_TOKEN="your_token"
   - _依賴: 9.1 (音頻處理基礎)_
   - _輸出: 進階語意分析 Agent 完成_
 
-- [x] 9.9 Voxtral Mini 3B 音訊直接處理測試（W2：音訊理解優化）
-  - ✅ 整合 Replicate API 測試 `mistralai/voxtral-mini-3b` 模型
-  - ✅ 實作直接音訊到 bullet points 的單步處理流程
-  - ✅ 建立多層級處理架構：遠端 RTX 3080 → 本地 Replicate → Whisper 備案
-  - ✅ 創建 AnythingLLM + RTX 3080 部署指南 (`spec_docs/anythingllm-rtx3080-deployment.md`)
-  - ✅ 實作遠端 API 處理器 (`app/services/remote_voxtral_processor.py`)
-  - ✅ 整合測試伺服器支援遠端和本地 Voxtral 切換
-  - 🔄 待測試：實際 RTX 3080 部署和性能對比
-  - _需求: 音訊處理效率提升和 QNN 部署準備_
-  - _依賴: 9.1 (現有音頻處理基礎)_
-  - _輸出: Voxtral 音訊處理器完成 → 遠端部署就緒 → 待性能評估_
+- [x] 9.9 Voxtral Mini 3B Q4 ONNX 微服務架構（W2：本地 GPU 語音推理）
+  - ✅ 部署 Voxtral Mini 3B Q4 ONNX 模型至 RTX 3080 Docker 容器
+  - ✅ 建立完整三階段 ONNX Pipeline：audio_encoder → embed_tokens → decoder
+  - ✅ 實作 GPU 加速推理（CUDA 12.2 + CUDAExecutionProvider）
+  - ✅ 修復 librosa → onnxruntime 依賴衝突導致的 GPU 問題  
+  - ✅ 實作完整生成循環：prefill + decode 階段，支援 30層解碼器
+  - ✅ 整合 tokenizer.json 正確解碼 Token IDs → 文字輸出
+  - ✅ 建立 FastAPI 微服務端點：`/inference` 和 `/inference/upload`
+  - ✅ **成功驗證**：中文語音轉錄準確，推論速度快（~2-5秒）
+  - ✅ 建立前端測試頁面：`voxtral-voice.html`，支援即時錄音和檔案上傳
+  - _需求: 本地 GPU 語音推理，為 QNN 轉換做準備_  
+  - _依賴: 9.1 (音頻處理基礎)_
+  - _輸出: **完整 Voxtral Q4 微服務就緒** → 中文轉錄驗證成功_
 
-- [ ] 9.10 RTX 3080 遠端 Voxtral 部署與性能測試（W2：GPU 加速推理）**【切換電腦執行】**
-  - 依照 `spec_docs/anythingllm-rtx3080-deployment.md` 部署 AnythingLLM
-  - 下載和配置 `onnx-community/Voxtral-Mini-3B-2507-ONNX` Q4 量化模型
-  - 配置 ngrok 隧道開放 API 接口 (`https://xxx.ngrok.io`)
-  - 設定環境變數: `VOXTRAL_REMOTE_API_URL` 和 `VOXTRAL_REMOTE_API_TOKEN`
-  - 執行端到端音訊處理測試：Mac → ngrok → RTX 3080 → 回傳結果
-  - 性能對比基準測試：遠端 Voxtral Q4 vs 本地 Whisper+GPT
-  - 驗證多層級降級機制：遠端 → 本地 → Whisper 備案流程
-  - _需求: GPU 加速音訊推理，2-3 秒回應時間_
-  - _依賴: 9.9 (遠端 API 處理器)_
-  - _輸出: RTX 3080 服務就緒 → 性能基準報告 → Mac 可調用遠端推理_
+- [x] 9.10 Voxtral Q4 微服務整合與前端測試（W2：端到端語音服務）
+  - ✅ 修復前端 API 端點配置錯誤（501 Unsupported method）
+  - ✅ 整合 Docker 服務與測試頁面：`localhost:8001` ↔ `localhost:3000`
+  - ✅ 解決 tokenizer.json 缺失導致的解碼問題
+  - ✅ 實作音頻格式適配：webm/mp3/wav → 16kHz 重採樣
+  - ✅ 建立音頻預覽和錄音回放功能
+  - ✅ **測試驗證**：前端語音錄音 → Docker GPU 推理 → 中文轉錄成功
+  - ✅ 效能表現：推論速度快，音質清晰，轉錄準確率高
+  - ✅ 更新 Dockerfile 確保 tokenizer 正確下載  
+  - _需求: 端到端語音服務驗證_
+  - _依賴: 9.9 (Voxtral 微服務)_
+  - _輸出: **語音轉錄服務完全就緒** → 可整合至 NodePilot 主系統_
+
+- [ ] 9.11 NodePilot 主系統整合 Voxtral 微服務（W2：系統整合）
+  - 實作 NodePilot 後端的 Voxtral 客戶端：調用 `localhost:8001` 微服務
+  - 更新現有音頻處理端點：優先使用本地 Voxtral，Whisper 作備案
+  - 實作微服務健康檢查和自動降級機制
+  - 整合前端 WXT 擴充插件與 Voxtral 微服務 API  
+  - 驗證端到端流程：瀏覽器錄音 → NodePilot 後端 → Voxtral 微服務 → 轉錄結果
+  - 效能優化：快取機制、並發請求處理、錯誤重試
+  - _需求: Voxtral 微服務整合至完整系統_
+  - _依賴: 9.10 (Voxtral 微服務就緒)_
+  - _輸出: **完整語音轉錄系統** → 可投入生產使用_
 
 - [ ] 9.6 實作筆記檢索 Agent（W2：RAG 知識庫整合）
   - 建立 Obsidian 筆記 RAG 向量資料庫檢索系統
@@ -174,6 +208,69 @@ export VOXTRAL_REMOTE_API_TOKEN="your_token"
   - _需求: 統一輸出格式和品質保證_
   - _依賴: 9.1-9.5 (所有 Agent 結果)_
   - _輸出: 整合模組完成 → API 接口 → 前端 UI 顯示_
+
+### W2 Reader 功能實作
+
+- [x] 8. 實作 Content Script 內容擷取功能（W2：Reader 基礎）**【EXT】**
+  - 建立智慧文章內容擷取算法，自動識別主文章區域
+  - 實作圖片 URL 處理，將相對路徑轉換為絕對路徑
+  - 建立廣告和干擾元素過濾機制（導航、側邊欄、footer）
+  - 實作 Readwise 風格頂部橫槓設計，點擊擴充套件圖示顯示
+  - 建立內容擷取結果的預覽和確認機制
+  - _需求: 5.1 (內容擷取功能)_
+  - _依賴: 2.2 (WXT Content Script 架構)_
+  - _輸出: Content Script 擷取功能完成_
+
+- [ ] 8.1 建立後端 Reader 內容處理 API（W2：Reader 後端）**【API】**
+  - 實作 `POST /extract-content` 端點進行伺服器端內容清理
+  - 建立內容清理服務：HTML sanitization 和格式優化
+  - 實作閱讀時間預估算法（基於字數和複雜度）
+  - 建立 Reader 內容的 SQLite 存儲和檢索功能
+  - 實作內容重複檢查機制，避免重複擷取同一文章
+  - _需求: 5.1, 5.2 (Reader API 和資料存儲)_
+  - _依賴: 3 (FastAPI 後端服務)_
+  - _輸出: Reader API 端點完成_
+
+- [x] 8.2 建立 WXT Reader Tab 頁面（W2：Reader UI）**【EXT】**
+  - 使用 `browser.tabs.create()` 建立獨立的 Reader Tab 頁面
+  - 實作暗黑模式和淺色模式的切換功能
+  - 建立適合閱讀的字體排版和響應式設計
+  - 實作閱讀進度指示器和滾動位置記憶
+  - 建立快捷鍵支援（ESC 返回、Ctrl+D 模式切換）
+  - _需求: 5.2, 5.4 (Reader 頁面和使用體驗)_
+  - _依賴: 8.1 (Reader API)_
+  - _輸出: Reader Tab 頁面完成_
+
+- [x] 8.3 整合標註功能到 Reader（W2：Reader 標註）**【EXT】**
+  - 在 Reader 頁面中注入文字選取和標註功能
+  - 實作螢光筆標記的視覺效果和持久化存儲
+  - 整合現有的 AI 教學生成功能到 Reader
+  - 建立 Reader 和原網頁標註資料的統一管理
+  - 實作標註在 Reader 中的快速檢視和編輯功能
+  - _需求: 5.3 (標註功能整合)_
+  - _依賴: 8.2 (Reader Tab)，9.2 (AI 教學生成)_
+  - _輸出: Reader 標註功能完成_
+
+- [x] 8.0 Reader 功能完整實作（W2：Readwise 風格 Reader）**【EXT】**
+  - ✅ 實作 Readwise 風格擴充套件圖示點擊觸發機制
+  - ✅ 建立黑色頂部橫槓設計，包含 NodePilot Logo 和 "Open in Reader" 按鈕
+  - ✅ 整合智慧內容擷取算法，自動過濾廣告和干擾元素
+  - ✅ 建立暗黑模式 Reader 頁面，支援字體調整和快捷鍵
+  - ✅ 整合完整標註功能，支援文字選取和 AI 教學生成
+  - ✅ 實作頁面適配機制，避免內容被橫槓遮擋
+  - _需求: 5.1, 5.2, 5.3, 5.4 (完整 Reader 功能)_
+  - _依賴: WXT Framework + React + TypeScript 架構_
+  - _輸出: 完整 Readwise 風格 Reader 功能，可投入測試使用_
+
+- [ ] 8.4 Reader 體驗優化和測試（W2：Reader 完善）**【EXT → API】**
+  - 優化內容載入速度和渲染效能
+  - 實作內容擷取準確率測試和品質評估
+  - 建立不同網站的擷取策略適配機制
+  - 實作錯誤處理和降級方案（擷取失敗時的處理）
+  - 進行跨瀏覽器相容性測試和優化
+  - _需求: 5.4 (使用體驗)_
+  - _依賴: 8.3 (Reader 標註功能)_
+  - _輸出: Reader 功能測試完成 → 可用於生產環境_
 
 ### W2 系統整合與優化
 

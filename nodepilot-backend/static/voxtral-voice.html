@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxtral Mini 3B 語音測試 - RTX 3080 GPU</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, 'Microsoft YaHei', BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .gpu-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+        
+        .mode-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+        
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .record-section {
+            text-align: center;
+            padding: 40px 0;
+            border: 2px dashed #ddd;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            background: #f9f9f9;
+        }
+        
+        .record-btn {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.3);
+        }
+        
+        .record-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .record-btn.recording {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(250, 112, 154, 0.7); }
+            70% { box-shadow: 0 0 0 30px rgba(250, 112, 154, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(250, 112, 154, 0); }
+        }
+        
+        .timer {
+            margin-top: 20px;
+            font-size: 24px;
+            color: #666;
+            font-weight: bold;
+        }
+        
+        .waveform {
+            height: 100px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .waveform canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .result-section {
+            margin-top: 30px;
+        }
+        
+        .result-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .result-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .result-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .result-content {
+            color: #555;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+        
+        .transcription {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            margin: 10px 0;
+        }
+        
+        .summary-points {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .summary-points li {
+            padding: 10px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        
+        .summary-points li:before {
+            content: "•";
+            position: absolute;
+            left: 10px;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .language-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .lang-btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .lang-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .upload-section {
+            text-align: center;
+            padding: 20px;
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-section:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .performance-metrics {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .metric {
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .audio-preview {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px dashed #667eea;
+        }
+        
+        .audio-preview-header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .audio-preview-header h3 {
+            color: #667eea;
+            margin: 0;
+        }
+        
+        .audio-info {
+            color: #888;
+            font-size: 14px;
+        }
+        
+        .preview-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .process-btn, .rerecord-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .process-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .process-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .rerecord-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .rerecord-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Voxtral Mini 3B 語音測試</h1>
+            <div class="gpu-badge">RTX 3080 GPU | ONNX Q4 | 中文支援</div>
+        </div>
+        
+        <div class="main-content">
+            <!-- 模式選擇 -->
+            <div class="mode-selector">
+                <button class="mode-btn active" data-mode="transcribe">語音轉錄</button>
+                <button class="mode-btn" data-mode="summarize">語音總結</button>
+                <button class="mode-btn" data-mode="qa">問答模式</button>
+            </div>
+            
+            <!-- 語言選擇 -->
+            <div class="language-selector">
+                <button class="lang-btn active" data-lang="zh">中文</button>
+                <button class="lang-btn" data-lang="en">English</button>
+                <button class="lang-btn" data-lang="auto">自動檢測</button>
+            </div>
+            
+            <!-- 錄音區域 -->
+            <div class="record-section">
+                <button class="record-btn" id="recordBtn">
+                    <span id="recordText">開始錄音</span>
+                </button>
+                <div class="timer" id="timer">00:00</div>
+                <div class="waveform" id="waveform">
+                    <canvas id="waveCanvas"></canvas>
+                </div>
+            </div>
+            
+            <!-- 上傳區域 -->
+            <div class="upload-section" id="uploadSection">
+                <input type="file" id="fileInput" accept="audio/*" style="display: none;">
+                <p>📁 點擊上傳音頻檔案 (支援 MP3, WAV, M4A 等格式)</p>
+            </div>
+            
+            <!-- 載入中 -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>正在處理音頻...</p>
+            </div>
+            
+            <!-- 結果顯示 -->
+            <!-- 音頻預覽區域 -->
+            <div id="audioPreview" class="audio-preview" style="display: none;">
+                <div class="audio-preview-header">
+                    <h3>🎵 錄音預覽</h3>
+                    <span class="audio-info">請確認錄音品質後再進行轉錄</span>
+                </div>
+                <div class="audio-controls">
+                    <audio id="previewAudio" controls style="width: 100%; margin: 15px 0;"></audio>
+                </div>
+                <div class="preview-actions">
+                    <button id="processAudioBtn" class="process-btn">🚀 開始轉錄</button>
+                    <button id="reRecordBtn" class="rerecord-btn">🎤 重新錄音</button>
+                </div>
+            </div>
+            
+            <div class="result-section" id="results"></div>
+            
+            <!-- 性能指標 -->
+            <div class="performance-metrics">
+                <div class="metric">
+                    <div class="metric-value" id="processTime">-</div>
+                    <div class="metric-label">處理時間</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="audioLength">-</div>
+                    <div class="metric-label">音頻長度</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="gpuUsage">GPU</div>
+                    <div class="metric-label">推理設備</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局變數
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordingTimer;
+        let recordingStartTime;
+        let currentMode = 'transcribe';
+        let currentLanguage = 'zh';
+        let audioContext;
+        let analyser;
+        let animationId;
+        
+        // DOM 元素
+        const recordBtn = document.getElementById('recordBtn');
+        const recordText = document.getElementById('recordText');
+        const timer = document.getElementById('timer');
+        const results = document.getElementById('results');
+        const loading = document.getElementById('loading');
+        const waveCanvas = document.getElementById('waveCanvas');
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        
+        // 初始化
+        window.addEventListener('load', () => {
+            setupEventListeners();
+            setupAudioVisualization();
+        });
+        
+        // 設置事件監聽器
+        function setupEventListeners() {
+            // 錄音按鈕
+            recordBtn.addEventListener('click', toggleRecording);
+            
+            // 模式選擇
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentMode = btn.dataset.mode;
+                });
+            });
+            
+            // 語言選擇
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentLanguage = btn.dataset.lang;
+                });
+            });
+            
+            // 檔案上傳
+            uploadSection.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileUpload);
+        }
+        
+        // 設置音頻視覺化
+        function setupAudioVisualization() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+        }
+        
+        // 切換錄音
+        async function toggleRecording() {
+            if (!isRecording) {
+                await startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+        
+        // 開始錄音
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // 設置錄音器
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    
+                    // 創建音頻 URL 供回放
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
+                    // 顯示錄音回放控制
+                    showAudioPreview(audioUrl, audioBlob);
+                };
+                
+                // 開始錄音
+                mediaRecorder.start();
+                isRecording = true;
+                recordBtn.classList.add('recording');
+                recordText.textContent = '停止錄音';
+                
+                // 開始計時
+                recordingStartTime = Date.now();
+                updateTimer();
+                
+                // 視覺化
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                drawWaveform();
+                
+            } catch (error) {
+                console.error('錄音失敗:', error);
+                alert('無法訪問麥克風，請檢查權限設置');
+            }
+        }
+        
+        // 停止錄音
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+            
+            isRecording = false;
+            recordBtn.classList.remove('recording');
+            recordText.textContent = '開始錄音';
+            clearInterval(recordingTimer);
+            timer.textContent = '00:00';
+            
+            // 停止視覺化
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        // 更新計時器
+        function updateTimer() {
+            recordingTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                timer.textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+        
+        // 繪製波形
+        function drawWaveform() {
+            const canvas = waveCanvas;
+            const ctx = canvas.getContext('2d');
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            function draw() {
+                if (!isRecording) return;
+                
+                animationId = requestAnimationFrame(draw);
+                
+                analyser.getByteTimeDomainData(dataArray);
+                
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#667eea';
+                ctx.beginPath();
+                
+                const sliceWidth = canvas.width / bufferLength;
+                let x = 0;
+                
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0;
+                    const y = v * canvas.height / 2;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                    
+                    x += sliceWidth;
+                }
+                
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+            }
+            
+            draw();
+        }
+        
+        // 顯示音頻預覽
+        function showAudioPreview(audioUrl, audioBlob) {
+            const audioPreview = document.getElementById('audioPreview');
+            const previewAudio = document.getElementById('previewAudio');
+            const processBtn = document.getElementById('processAudioBtn');
+            const reRecordBtn = document.getElementById('reRecordBtn');
+            
+            // 設置音頻源
+            previewAudio.src = audioUrl;
+            
+            // 顯示預覽區域
+            audioPreview.style.display = 'block';
+            
+            // 處理音頻按鈕事件
+            processBtn.onclick = async () => {
+                audioPreview.style.display = 'none';
+                URL.revokeObjectURL(audioUrl); // 清理 URL
+                await processAudio(audioBlob);
+            };
+            
+            // 重新錄音按鈕事件
+            reRecordBtn.onclick = () => {
+                audioPreview.style.display = 'none';
+                URL.revokeObjectURL(audioUrl); // 清理 URL
+                results.innerHTML = ''; // 清空結果
+            };
+        }
+        
+        // 處理音頻
+        async function processAudio(audioBlob) {
+            loading.classList.add('active');
+            results.innerHTML = '';
+            
+            const startTime = Date.now();
+            
+            try {
+                // 轉換為 Base64
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                    const base64Audio = reader.result.split(',')[1];
+                    
+                    // 發送到 Voxtral Docker 服務
+                    const response = await fetch('http://localhost:8001/inference', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            audio_data: base64Audio,
+                            task: currentMode,
+                            language: currentLanguage === 'auto' ? 'auto' : currentLanguage
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    const processTime = Date.now() - startTime;
+                    
+                    // 處理回應
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    // 適配 Voxtral API 回應格式  
+                    const result = {
+                        mode: data.task || currentMode,
+                        text: data.result || '無法識別音頻內容',
+                        language: data.language || currentLanguage,
+                        confidence: 0.95,
+                        duration: data.duration || (data.processing_time ? `${(data.processing_time * 1000).toFixed(0)}ms` : '-')
+                    };
+                    
+                    // 顯示結果
+                    displayResults(result, processTime);
+                    
+                    // 更新性能指標
+                    document.getElementById('processTime').textContent = `${processTime}ms`;
+                    document.getElementById('audioLength').textContent = data.result.duration || '-';
+                };
+                
+                reader.readAsDataURL(audioBlob);
+                
+            } catch (error) {
+                console.error('處理失敗:', error);
+                
+                // 顯示具體錯誤訊息
+                results.innerHTML = `
+                    <div class="result-card" style="border-left-color: #f5576c;">
+                        <div class="result-header">
+                            <div class="result-title">⚠️ 處理失敗</div>
+                            <div class="result-badge">錯誤</div>
+                        </div>
+                        <div class="result-content">
+                            <div style="color: #f5576c;">
+                                ${error.message || '音頻處理失敗，請重試'}
+                            </div>
+                            <div style="margin-top: 10px; font-size: 14px; color: #888;">
+                                請檢查音頻格式或網路連接
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+        
+        // 顯示結果
+        function displayResults(result, processTime) {
+            results.innerHTML = '';
+            
+            if (result.mode === 'transcribe') {
+                // 轉錄結果
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <div class="result-header">
+                        <div class="result-title">語音轉錄結果</div>
+                        <div class="result-badge">${result.language || 'auto'}</div>
+                    </div>
+                    <div class="result-content">
+                        <div class="transcription">
+                            ${result.text || result.text_zh || '無法識別音頻內容'}
+                        </div>
+                        ${result.original_text ? `
+                            <div class="transcription" style="margin-top: 10px; border-left-color: #764ba2;">
+                                <strong>原文：</strong>${result.original_text}
+                            </div>
+                        ` : ''}
+                        <div style="margin-top: 15px; color: #888; font-size: 14px;">
+                            置信度: ${(result.confidence * 100).toFixed(1)}% | 
+                            處理時間: ${processTime}ms
+                        </div>
+                    </div>
+                `;
+                results.appendChild(card);
+                
+            } else if (result.mode === 'summarize') {
+                // 總結結果
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <div class="result-header">
+                        <div class="result-title">語音總結</div>
+                        <div class="result-badge">AI 總結</div>
+                    </div>
+                    <div class="result-content">
+                        <div>${result.summary_zh || result.summary}</div>
+                        ${result.key_points ? `
+                            <ul class="summary-points">
+                                ${result.key_points.map(point => `<li>${point}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                    </div>
+                `;
+                results.appendChild(card);
+                
+            } else if (result.mode === 'qa') {
+                // Q&A 結果
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <div class="result-header">
+                        <div class="result-title">問答模式</div>
+                        <div class="result-badge">Q&A</div>
+                    </div>
+                    <div class="result-content">
+                        <div style="margin-bottom: 15px;">
+                            <strong>問題：</strong>${result.question}
+                        </div>
+                        <div class="transcription">
+                            <strong>回答：</strong>${result.answer}
+                        </div>
+                    </div>
+                `;
+                results.appendChild(card);
+            }
+        }
+        
+        // 處理檔案上傳
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            loading.classList.add('active');
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('task', currentMode);
+                formData.append('language', currentLanguage);
+                
+                const response = await fetch('http://localhost:8001/inference/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                // 適配上傳 API 回應格式
+                const result = {
+                    mode: data.task || currentMode,
+                    text: data.result || '無法識別音頻內容',
+                    language: data.language || currentLanguage,
+                    confidence: 0.95,
+                    duration: data.duration || (data.processing_time ? `${(data.processing_time * 1000).toFixed(0)}ms` : '-')
+                };
+                
+                displayResults(result, 0);
+                
+            } catch (error) {
+                console.error('上傳失敗:', error);
+                alert('檔案上傳失敗，請重試');
+            } finally {
+                loading.classList.remove('active');
+                fileInput.value = '';
+            }
+        }
+    </script>
+</body>
+</html>

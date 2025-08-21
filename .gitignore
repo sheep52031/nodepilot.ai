@@ -90,6 +90,16 @@ temp/
 *.tmp
 *.temp
 
+# AI 模型檔案和大型資料
+*.onnx
+*.onnx_data
+*.bin
+*.pt
+*.pth
+*.safetensors
+models/
+*.tgz
+
 # Chrome Extension 開發
 web-ext-artifacts/
 *.zip

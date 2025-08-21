@@ -24,10 +24,27 @@ except ImportError as e:
     ModelPool = None
     AI_CORE_AVAILABLE = False
 
-# API Terminal 既有系統
-from rag_service import rag_service
-from result_formatter import result_integration_service
-from model_manager import model_manager as api_model_manager
+# API Terminal 既有系統（模擬實現）
+# from rag_service import rag_service
+# from result_formatter import result_integration_service  
+# from model_manager import model_manager as api_model_manager
+
+# 暫時模擬實現
+class MockRAGService:
+    async def initialize(self): pass
+    def process_query(self, query): return {"response": f"模擬RAG回應: {query}"}
+
+class MockResultFormatter:
+    async def initialize(self): pass
+    def format_result(self, result): return result
+
+class MockModelManager:
+    async def initialize(self): pass  
+    def get_active_model(self): return "mock-model"
+
+rag_service = MockRAGService()
+result_integration_service = MockResultFormatter() 
+api_model_manager = MockModelManager()
 
 logger = logging.getLogger("IntegratedSystem")
 
